@@ -1,0 +1,11 @@
+{
+  "name": "SFEBot",
+  "version": "1.0.0",
+  "description": "Bot for SFE's discord server",
+  "main": "bot.js",
+  "author": "Benjamin Spenciner",
+  "dependencies": {
+    "discord.io": "^2.5.3",
+    "winston": "^3.2.1"
+  }
+}
