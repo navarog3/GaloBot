@@ -24,8 +24,6 @@ module.exports = {
 
       fs.writeFile(fileName, data, (err) => {
         if (err) return console.log(err);
-        // console.log(JSON.stringify(data, null, 2));
-        // console.log('writing to ' + fileName);
       })
       message.reply(` Successfully created a ping with the name ${inputName}.`);
     },
