@@ -7,24 +7,26 @@ module.exports = {
   usage: '[ping_name] [ping time] [ping message]',
   args: true,
     execute(message, args) {
-      //$make-ping raiders_1 Tuesday 0230 This is an example ping, for testing purposes.
-      //          |  Name   |  Day  |Time| Message ----->
       const inputName = args[0];
       const inputDay = args[1];
       const inputTime = args[2];
-      //const inputMsg = ;
+      const trash = args.splice(0, 3);
+      const inputMsg = args.join(' ');
 
       let dataPre = {
-        name: `${input}`
+        name: `${inputName}`,
+        time: `${inputDay} ${inputTime}`,
+        msg:  `${inputMsg}`
       };
+
       let data = JSON.stringify(dataPre, null, 2);
-      const fileName = `./pings/${input}.json`;
+      const fileName = `./pings/${inputName}.json`;
 
       fs.writeFile(fileName, data, (err) => {
         if (err) return console.log(err);
         // console.log(JSON.stringify(data, null, 2));
         // console.log('writing to ' + fileName);
       })
-      message.reply(` Successfully created a ping with the name ${input}.`);
+      message.reply(` Successfully created a ping with the name ${inputName}.`);
     },
   };
