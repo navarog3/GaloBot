@@ -1,5 +1,6 @@
 const fs = require('fs');
 const Discord = require('discord.js');
+const Moment = require('moment');
 const {prefix, token, role_id} = require('./config.json');
 
 const client = new Discord.Client();
@@ -13,7 +14,7 @@ for (const file of commandFiles) {
 }
 
 client.once('ready', () => {
-	console.log('Ready!');
+  console.log('Ready!');
 });
 
 client.on('message', message => {
