@@ -1,0 +1,2 @@
+# Ignore config.json, as it includes the private token
+config.json

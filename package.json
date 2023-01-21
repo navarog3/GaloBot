@@ -1,9 +1,9 @@
 {
-  "name": "SFEBot",
+  "name": "GaloBot",
   "version": "1.0.0",
-  "description": "Bot for SFE's discord server",
+  "description": "A Discord bot designed to enhance the Vexera bot's music playing capabilities",
   "main": "bot.js",
-  "author": "Benjamin Spenciner",
+  "author": "navarog3",
   "dependencies": {
     "discord.io": "^2.5.3",
     "discord.js": "^11.5.1",

@@ -1,8 +1,6 @@
-module.exports = {
-  name: 'ping',
-  description: 'Ping pong',
-  args: false,
-  execute(message, args) {
-    message.channel.send('pong');
-  },
-};
+export const name = 'ping';
+export const description = 'Ping pong';
+export const args = false;
+export function execute(message, args) {
+  message.channel.send('pong');
+}
