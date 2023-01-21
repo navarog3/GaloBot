@@ -1,50 +1,52 @@
-import { readdirSync } from 'fs';
-import { Client, Collection } from 'discord.js';
-import Moment from 'moment';
-import { prefix, token, role_id } from './config.json';
+const { readdirSync } = require('node:fs');
+const path = require('node:path');
+const { Client, Collection, Events, GatewayIntentBits } = require('discord.js');
+const { token } = require('./config.json');
 
-const client = new Client();
+// Create new client instance
+const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+
+// Get path to commands directory
 client.commands = new Collection();
+const commandsPath = path.join(__dirname, 'commands');
+const commandFiles = readdirSync(commandsPath).filter(file => file.endsWith('.js'));
 
-const commandFiles = readdirSync('./commands').filter(file => file.endsWith('.js'));
-
+// Add command files to list of available commands
 for (const file of commandFiles) {
-  const command = require(`./commands/${file}`);
-  client.commands.set(command.name, command);
+  const filePath = path.join(commandsPath, file);
+  const command = require(filePath);
+  if ('data' in command && 'execute' in command) {
+    client.commands.set(command.data.name, command);
+  } else {
+    console.warn(`The command at ${filePath} is missing a required "data" or "execute" property.`);
+  }
 }
 
-client.once('ready', () => {
-  console.log('Ready!');
+// Once client is ready, run this code once
+client.once(Events.ClientReady, c => {
+  console.log(`Ready! Logged in as ${c.user.tag}`);
 });
 
-client.on('message', message => {
-  if (!message.content.startsWith(prefix) || message.author.bot || !message.member.roles.has(role_id)) return;
-
-  const args = message.content.slice(prefix.length).split(/ +/);
-  const commandName = args.shift().toLowerCase();
-
-  if (!client.commands.has(commandName)) {
-    message.reply('No such command exists.');
-  };
-
-  const command = client.commands.get(commandName);
-
-  if (command.args && !args.length) {
-    let reply = `You didn't provide any arguments, ${message.author}.`;
-
-    if (command.usage) {
-      reply += `\nThe proper usage would be: \`${prefix}${command.name} ${command.usage}\``;
-    }
-
-    return message.channel.send(reply);
+// On interactions (slash commands are interactions), execute it
+client.on(Events.InteractionCreate, async interaction => {
+  if (!interaction.isChatInputCommand()) return;
+  
+  const command = interaction.client.commands.get(interaction.commandName);
+ 
+  if (!command) {
+    console.error(`No command matching ${interaction.commmandName} was found.`);
+    return;
   }
 
   try {
-    command.execute(message, args);
+    await command.execute(interaction);
   } catch (error) {
+    // If something goes wrong, log the error and reply to the interaction
+    console.error(`Error while executing ${interaction.commmandName}`);
     console.error(error);
-    message.reply('There was an error trying to execute that command.');
+    await interaction.reply({ content: 'There was an error while executing this command.', ephemeral: true });
   }
 });
 
+// Log into Discord with the bot's token
 client.login(token);

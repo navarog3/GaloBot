@@ -1,6 +1,10 @@
-export const name = 'ping';
-export const description = 'Ping pong';
-export const args = false;
-export function execute(message, args) {
-  message.channel.send('pong');
-}
+const { SlashCommandBuilder } = require('discord.js');
+
+module.exports = {
+	data: new SlashCommandBuilder()
+		.setName('ping')
+		.setDescription('Replies with pong.'),
+	async execute(interaction) {
+		await interaction.reply('pong');
+	},
+};
