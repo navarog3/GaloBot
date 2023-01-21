@@ -24,7 +24,7 @@ for (const file of commandFiles) {
 
 // Once client is ready, run this code once
 client.once(Events.ClientReady, c => {
-  console.log(`Ready! Logged in as ${c.user.tag}`);
+  console.log(`Logged in as ${c.user.tag}`);
 });
 
 // On interactions (slash commands are interactions), execute it
