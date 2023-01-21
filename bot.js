@@ -2,6 +2,7 @@ const { readdirSync } = require('node:fs');
 const path = require('node:path');
 const { Client, Collection, Events, GatewayIntentBits } = require('discord.js');
 const { token } = require('./config.json');
+const { queueHandler } = require('./queue-handler.js');
 
 // Create new client instance
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
@@ -39,7 +40,9 @@ client.on(Events.InteractionCreate, async interaction => {
   }
 
   try {
-    await command.execute(interaction, client);
+    await queueHandler.init(interaction, client);
+    
+    await command.execute(interaction, queueHandler);
   } catch (error) {
     // If something goes wrong, log the error and reply to the interaction
     console.error(`Error while executing ${interaction.commmandName}`);
