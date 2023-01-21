@@ -23,7 +23,7 @@ ex useage
 /play
 - accepts either a song or playlist link. if song, play it. if playlist, play first song and add rest to queue
 
-/play-r
+/play-l
 - accepts either a song or playlist link. if song, play it and repeat it. if playlist, play first song, add rest to queue, and repeat queue
 
 /queue
@@ -35,5 +35,7 @@ ex useage
 /skip
 - skips the current song and moves to the next one in the queue
 
-/loop
+/shuffle
 - randomizes the current queue
+
+/loop

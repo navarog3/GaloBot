@@ -39,7 +39,7 @@ client.on(Events.InteractionCreate, async interaction => {
   }
 
   try {
-    await command.execute(interaction);
+    await command.execute(interaction, client);
   } catch (error) {
     // If something goes wrong, log the error and reply to the interaction
     console.error(`Error while executing ${interaction.commmandName}`);
