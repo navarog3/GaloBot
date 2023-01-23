@@ -48,6 +48,7 @@ client.on(Events.InteractionCreate, async interaction => {
     await command.execute(interaction, queueHandler);
   } catch (error) {
     // If something goes wrong, reply to the interaction
+    console.log(error);
     await interaction.reply({ content: 'There was an error while executing this command.', ephemeral: true });
   }
 });

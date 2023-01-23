@@ -1,10 +1,13 @@
 const { ytdl } = require('ytdl-core');
 const { ytpl } = require('ytpl');
+const { joinVoiceChannel, createAudioPlayer, entersState, VoiceConnectionStatus } = require('@discordjs/voice');
+
 var queue;
 var voiceChannel;
 var textChannel;
 var client;
 var isInit = false;
+const player = createAudioPlayer();
 
 // Handles the song queue.
 // Song objects have two properties, title and url
@@ -32,15 +35,26 @@ module.exports = class QueueHandler {
 
         // Check for correct permissions
         const perms = voiceChannel.permissionsFor(client.user);
-        if (!perms.has("CONNECT") || !perms.has("SPEAK")) {
+        if (!perms.has('Connect') || !perms.has('Speak')) {
             await interaction.reply('I need permissions to join and speak in your voice channel.');
         }
 
         // Join the voice channel and save connection to queue object
-        queue.connection = await voiceChannel.join();
+        queue.connection = await this.connectToChannel(voiceChannel);
+        queue.connection.subscribe(player);
 
         isInit = true;
     };
+
+    // Connects the bot to a voice channel
+    async connectToChannel(channel) {
+        const connection = joinVoiceChannel({
+            channelId: channel.id,
+            guildId: channel.guild.id,
+            adapterCreator: channel.guild.voiceAdapterCreator
+        });
+        await entersState(connection, VoiceConnectionStatus.Ready, 30_000);
+    }
 
     // Add a song to the queue
     async add(songUrl) {
@@ -61,13 +75,13 @@ module.exports = class QueueHandler {
 
             // Play the first song in the playlist if the queue only has this playlist in it
             if (queue.songs.length == playlist.items.length) {
-                play(playlist.items[0]);
+                this.play(playlist.items[0]);
             }
         } else {
             // Add song to queue, then if queue is empty start playing it
             queue.songs.push(parsedUrl);
             if (queue.songs.length == 1) {
-                play(parsedUrl);
+                this.play(parsedUrl);
             }
         }
     };
