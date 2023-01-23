@@ -1,25 +1,10 @@
-If youtube playlist link, queue up each song
-- Cancel command for accidental playlist plays
-Stop command also should clear queue
-New argument to repeat (all if adding a playlist, one if only 1 song)
-
-ex useage
-.pl https://www.youtube.com/playlist?list=PL4qlfwt9LPQv9XV-maJi6PNxoEK5bdpZ8
-- should loop through "+play" commands with 3 sec delay for each song in playlist
-- if interrupted by a ".s", stop immediately and then "+clear"
-
-.plr https://www.youtube.com/playlist?list=PL4qlfwt9LPQv9XV-maJi6PNxoEK5bdpZ8
-- same as above but do a "+repeat all" afterward
-
-.p https://youtu.be/3uc8KFthZaA
-- plays single song
-
-.pr https://youtu.be/3uc8KFthZaA
-
-.stop
-- "+stop", then "+clear"
-
 ===== Plans for making it a full-blown music bot =====
+
+Use this to set a song's starttime: https://issuehunt.io/r/fent/node-ytdl-core/issues/838
+- in the queue.connection.play() function, include { seek: X } where X is how many seconds into the song to start
+- seems flakey and inconsistent, might not include this feature due to that
+
+Planned commands:
 /play
 - accepts either a song or playlist link. if song, play it. if playlist, play first song and add rest to queue
 

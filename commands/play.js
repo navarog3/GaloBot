@@ -12,7 +12,7 @@ module.exports = {
 	,async execute(interaction, queueHandler) {
         const url = interaction.options.getString('url');
 
-        // Initialize the queueHandler, then add a song when it's done
+        // Add the requested song to the queue
         await queueHandler.add(url);
 	},
 };
