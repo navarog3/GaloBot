@@ -3,9 +3,6 @@ const { ytpl } = require('ytpl');
 const ConnectionHandler = require('./connection-handler');
 
 var queue;
-var voiceChannel;
-var textChannel;
-var client;
 var isInit = false;
 
 // Create a new connectionHandler instance
@@ -16,17 +13,17 @@ var connectionHandler = new ConnectionHandler;
 module.exports = class QueueHandler {
 
     // Initializes the QueueHandler object, setting important information. Should only be run on first interaction with the bot.
-    async init(interaction, client) {
+    async init(interaction) {
+        // If already initialized, don't do it again
+        if (this.isInit) return;
+
         const voiceChannel = interaction.member.voice.channel;
         const textChannel = interaction.channel_id;
 
         // Set global vars
-        this.voiceChannel = voiceChannel;
-        this.textChannel = textChannel;
-        this.client = client;
         this.queue = {
+            textChannel: textChannel,
             songs: [],
-            connection: null,
             volume: 5
         };
 
@@ -36,7 +33,7 @@ module.exports = class QueueHandler {
         }
 
         // Join the voice channel and save connection to queue object
-        this.queue.connection = await connectionHandler.connectToChannel(voiceChannel);
+        await connectionHandler.connectToChannel(voiceChannel);
 
         isInit = true;
     };

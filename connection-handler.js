@@ -12,10 +12,18 @@ module.exports = class ConnectionHandler {
             adapterCreator: channel.guild.voiceAdapterCreator
         });
 
+        // Debugging help
+        connection.on('stateChange', (oldState, newState) => {
+            console.log(`Connection transitioned from ${oldState.status} to ${newState.status}`);
+        });
+        player.on('stateChange', (oldState, newState) => {
+            console.log(`Player transitioned from ${oldState.status} to ${newState.status}`);
+        });
+
+        // Wait for the bot to connect to the channel, then subscribe the player to the connection
         try {
-            await entersState(connection, VoiceConnectionStatus.Ready, 30_000);
+            await entersState(connection, VoiceConnectionStatus.Ready, 3000);
             connection.subscribe(player);
-            return connection;
         } catch (error) {
             connection.destroy();
             throw error;
@@ -26,8 +34,6 @@ module.exports = class ConnectionHandler {
         const resource = createAudioResource(songUrl, {
             inputType: StreamType.Arbitrary,
         });
-        this.player.play(resource);
-        
-        return entersState(this.player, AudioPlayerStatus.Playing, 5000);
+        player.play(resource);
     };
 };

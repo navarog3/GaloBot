@@ -2,10 +2,6 @@ const { readdirSync } = require('node:fs');
 const path = require('node:path');
 const { Client, Collection, Events, GatewayIntentBits } = require('discord.js');
 const { token } = require('./config.json');
-const QueueHandler = require('./queue-handler.js');
-
-// Create a new queueHandler instance
-var queueHandler = new QueueHandler;
 
 // Create new client instance
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
@@ -34,23 +30,15 @@ client.once(Events.ClientReady, c => {
 // On interactions (slash commands are interactions), execute it
 client.on(Events.InteractionCreate, async interaction => {
   if (!interaction.isChatInputCommand()) return;
-  
+
   const command = interaction.client.commands.get(interaction.commandName);
- 
+
   if (!command) {
     console.error(`No command matching ${interaction.commmandName} was found.`);
     return;
   }
 
-  try {
-    await queueHandler.init(interaction, client);
-    
-    await command.execute(interaction, queueHandler);
-  } catch (error) {
-    // If something goes wrong, reply to the interaction
-    console.log(error);
-    await interaction.reply({ content: 'There was an error while executing this command.', ephemeral: true });
-  }
+  await command.execute(interaction);
 });
 
 // Log into Discord with the bot's token
