@@ -1,12 +1,14 @@
-const { ytdl } = require('ytdl-core');
+const { createAudioResource, createAudioPlayer, joinVoiceChannel, VoiceConnectionStatus } = require('@discordjs/voice');
+const ytdl = require('ytdl-core');
 const { ytpl } = require('ytpl');
-const ConnectionHandler = require('./connection-handler');
+// const ConnectionHandler = require('./connection-handler');
 
 var queue;
 var isInit = false;
+const player = createAudioPlayer();
 
-// Create a new connectionHandler instance
-var connectionHandler = new ConnectionHandler;
+// // Create a new connectionHandler instance
+// var connectionHandler = new ConnectionHandler;
 
 // Handles the song queue.
 // Song objects have two properties, title and url
@@ -22,8 +24,7 @@ module.exports = class QueueHandler {
         // Set global vars
         this.queue = {
             interaction: interaction,
-            songs: [],
-            volume: 5
+            songs: []
         };
 
         // Check to see if the user is in a voice channel
@@ -33,98 +34,94 @@ module.exports = class QueueHandler {
         }
 
         // Join the voice channel and save connection to queue object
-        await connectionHandler.connectToChannel(voiceChannel);
+        const connection = joinVoiceChannel({
+            channelId: voiceChannel.id,
+            guildId: voiceChannel.guild.id,
+            adapterCreator: voiceChannel.guild.voiceAdapterCreator
+        });
+
+        // Once bot connects to the voice channel, subscribe the player
+        connection.on(VoiceConnectionStatus.Ready, (oldState, newState) => {
+            connection.subscribe(player);
+        });
 
         isInit = true;
     };
 
     // Add a song to the queue
-    async add(songUrl) {
+    add(rawUrl) {
         if (!isInit) {
             // QueueHandler needs to be initialized before it can do anything
             throw { name: "QueueHandlerNotInit", message: "Queue handler was attempted to be used before being initialized" };
         }
 
-        // Parse the url into a valid song object
-        const parsedUrl = await this.parseUrl(songUrl);
-        // const parsedUrl = {
-        //     title: 'Test',
-        //     shortUrl: songUrl,
-        //     playlist: '',
-        //     startTime: 0
+        const stream = ytdl(rawUrl, { quality: '251' });
 
-        // };
+        stream.on('info', (info) => {
+            const listLoc = rawUrl.indexOf('list=');
+            const timeLoc = rawUrl.indexOf('&t=');
+            var playlist = '';
+            var startTime = 0;
 
-        if (parsedUrl.playlist != '') {
-            // Grab playlist contents with ytpl, then put them all in the queue
-            const playlist = await ytpl(parsedUrl.playlist);
-            for (let i = 0; i < playlist.items.length; i++) {
-                this.queue.songs.push(playlist.items[i]);
+            if (listLoc != -1) {
+                // Get the playlist ID from the url
+                playlist = ytpl.getPlaylistID(rawUrl);
             }
 
-            // Play the first song in the playlist if the queue only has this playlist in it
-            if (this.queue.songs.length == playlist.items.length) {
-                this.play(playlist.items[0]);
+            if (timeLoc != -1) {
+                // Get the time from the url
+                startTime = rawUrl.substring(timeLoc + 3);
             }
-        } else {
-            // Add song to queue, then if queue is empty start playing it
-            this.queue.songs.push(parsedUrl);
-            if (this.queue.songs.length == 1) {
-                this.play(parsedUrl);
+
+            const song = {
+                title: info.videoDetails.title,
+                shortUrl: info.videoDetails.video_url,
+                playlist: playlist,
+                startTime: startTime
+            };
+
+            if (song.playlist != '') {
+                // Grab playlist contents with ytpl, then put them all in the queue
+                const playlist = ytpl(song.playlist);
+                for (let i = 0; i < playlist.items.length; i++) {
+                    this.queue.songs.push(playlist.items[i]);
+                }
+
+                // Play the first song in the playlist if the queue only has this playlist in it
+                if (this.queue.songs.length == playlist.items.length) {
+                    this.play(playlist.items[0]);
+                }
+            } else {
+                // Add song to queue, then if queue is empty start playing it
+                this.queue.songs.push(song);
+                if (this.queue.songs.length == 1) {
+                    this.play(song);
+                }
             }
-        }
+        });
     };
 
     // Plays a song in the queue. Calls itself when a song ends, as long as the queue still has more songs
-    async play(song) {
-        connectionHandler.play(song.shortUrl);
+    play(song) {
+        // connectionHandler.play('https://youtu.be/GKzsktuqwyU');
+        const stream = ytdl(song.shortUrl, { quality: '251' });
+        stream.on('info', (info) => {
+            console.log(stream);
+            player.play(createAudioResource(stream));
+        });
+        // connectionHandler.play(song.shortUrl);
 
         // Send url to ytdl, using the audio only option. dlChunkSize of 0 is recommended for Discord bots
         // const stream = await ytdl(song.shortUrl, { filter: 'audioonly', dlChunkSize: 0 });
 
         // Play the ytdl stream
         // const dispatcher = this.connectionHandler.play(stream).on("finish", () => {
-            // Once song is finished, remove it and play the next song as long as the queue isn't empty
-            // this.queue.songs.shift();
-            // this.queue.songs.length != 0 ? this.play(queue.songs[0]) : queue.textChannel.send('Queue empty');
+        // Once song is finished, remove it and play the next song as long as the queue isn't empty
+        // this.queue.songs.shift();
+        // this.queue.songs.length != 0 ? this.play(queue.songs[0]) : queue.textChannel.send('Queue empty');
         // });
 
         // dispatcher.setVolumeLogarithmic(queue.volume / 5);
-        this.queue.interaction.reply(`Now playing **${song.title}**`);
-    };
-
-    // Parses a url into its constituate parts. Returns a parsedUrl object that contains the song's title, url, playlist url, and song start time
-    //
-    // ex: Given this input https://youtu.be/XTte01kdG_k?list=PL4qlfwt9LPQv9XV-maJi6PNxoEK5bdpZ8&t=65
-    // parsedUrl would look like this
-    // { 
-    //   title: "Neil Cicierega - Best",
-    //   shortUrl: "https://youtu.be/XTte01kdG_k",
-    //   playlist: "https://www.youtube.com/playlist?list=PL4qlfwt9LPQv9XV-maJi6PNxoEK5bdpZ8",
-    //   startTime: "65"
-    // }
-    async parseUrl(rawUrl) {
-        const songInfo = await ytdl.getInfo(parsedUrl.song);
-        const listLoc = rawUrl.indexOf('list=');
-        const timeLoc = rawUrl.indexOf('&t=');
-        var playlist = '';
-        var startTime = 0;
-
-        if (listLoc != -1) {
-            // Get the playlist ID from the url
-            playlist = ytpl.getPlaylistID(rawUrl);
-        }
-
-        if (timeLoc != -1) {
-            // Get the time from the url
-            startTime = rawUrl.substring(timeLoc + 3);
-        }
-
-        return {
-            title: songInfo.title,
-            shortUrl: songInfo.video_url,
-            playlist: playlist,
-            startTime: startTime
-        };
+        this.queue.interaction.reply(`Now playing ${song.shortUrl}`);
     };
 };

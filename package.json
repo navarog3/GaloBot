@@ -10,6 +10,7 @@
     "@discordjs/voice": "^0.14.0",
     "discord-ytdl-core": "^5.0.4",
     "discord.js": "^14.7.1",
+    "ffmpeg": "^0.0.4",
     "libsodium-wrappers": "^0.7.10",
     "path": "^0.12.7",
     "ytdl-core": "^4.11.2",
