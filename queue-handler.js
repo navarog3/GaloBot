@@ -18,11 +18,10 @@ module.exports = class QueueHandler {
         if (this.isInit) return;
 
         const voiceChannel = interaction.member.voice.channel;
-        const textChannel = interaction.channel_id;
 
         // Set global vars
         this.queue = {
-            textChannel: textChannel,
+            interaction: interaction,
             songs: [],
             volume: 5
         };
@@ -30,6 +29,7 @@ module.exports = class QueueHandler {
         // Check to see if the user is in a voice channel
         if (!voiceChannel) {
             await interaction.reply('You need to be in a voice channel to play music.');
+            return;
         }
 
         // Join the voice channel and save connection to queue object
@@ -46,24 +46,31 @@ module.exports = class QueueHandler {
         }
 
         // Parse the url into a valid song object
-        const parsedUrl = await parseUrl(songUrl);
+        const parsedUrl = await this.parseUrl(songUrl);
+        // const parsedUrl = {
+        //     title: 'Test',
+        //     shortUrl: songUrl,
+        //     playlist: '',
+        //     startTime: 0
+
+        // };
 
         if (parsedUrl.playlist != '') {
             // Grab playlist contents with ytpl, then put them all in the queue
             const playlist = await ytpl(parsedUrl.playlist);
             for (let i = 0; i < playlist.items.length; i++) {
-                queue.songs.push(playlist.items[i]);
+                this.queue.songs.push(playlist.items[i]);
             }
 
             // Play the first song in the playlist if the queue only has this playlist in it
-            if (queue.songs.length == playlist.items.length) {
-                play(playlist.items[0]);
+            if (this.queue.songs.length == playlist.items.length) {
+                this.play(playlist.items[0]);
             }
         } else {
             // Add song to queue, then if queue is empty start playing it
-            queue.songs.push(parsedUrl);
-            if (queue.songs.length == 1) {
-                play(parsedUrl);
+            this.queue.songs.push(parsedUrl);
+            if (this.queue.songs.length == 1) {
+                this.play(parsedUrl);
             }
         }
     };
@@ -71,8 +78,6 @@ module.exports = class QueueHandler {
     // Plays a song in the queue. Calls itself when a song ends, as long as the queue still has more songs
     async play(song) {
         connectionHandler.play(song.shortUrl);
-
-
 
         // Send url to ytdl, using the audio only option. dlChunkSize of 0 is recommended for Discord bots
         // const stream = await ytdl(song.shortUrl, { filter: 'audioonly', dlChunkSize: 0 });
@@ -85,7 +90,7 @@ module.exports = class QueueHandler {
         // });
 
         // dispatcher.setVolumeLogarithmic(queue.volume / 5);
-        queue.textChannel.send(`Now playing **${song.title}**`);
+        this.queue.interaction.reply(`Now playing **${song.title}**`);
     };
 
     // Parses a url into its constituate parts. Returns a parsedUrl object that contains the song's title, url, playlist url, and song start time
