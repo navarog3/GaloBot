@@ -1,13 +1,15 @@
 const { ytdl } = require('ytdl-core');
 const { ytpl } = require('ytpl');
-const { joinVoiceChannel, createAudioPlayer, entersState, VoiceConnectionStatus } = require('@discordjs/voice');
+const ConnectionHandler = require('./connection-handler');
 
 var queue;
 var voiceChannel;
 var textChannel;
 var client;
 var isInit = false;
-const player = createAudioPlayer();
+
+// Create a new connectionHandler instance
+var connectionHandler = new ConnectionHandler;
 
 // Handles the song queue.
 // Song objects have two properties, title and url
@@ -33,28 +35,11 @@ module.exports = class QueueHandler {
             await interaction.reply('You need to be in a voice channel to play music.');
         }
 
-        // Check for correct permissions
-        const perms = voiceChannel.permissionsFor(client.user);
-        if (!perms.has('Connect') || !perms.has('Speak')) {
-            await interaction.reply('I need permissions to join and speak in your voice channel.');
-        }
-
         // Join the voice channel and save connection to queue object
-        queue.connection = await this.connectToChannel(voiceChannel);
-        queue.connection.subscribe(player);
+        this.queue.connection = await connectionHandler.connectToChannel(voiceChannel);
 
         isInit = true;
     };
-
-    // Connects the bot to a voice channel
-    async connectToChannel(channel) {
-        const connection = joinVoiceChannel({
-            channelId: channel.id,
-            guildId: channel.guild.id,
-            adapterCreator: channel.guild.voiceAdapterCreator
-        });
-        await entersState(connection, VoiceConnectionStatus.Ready, 30_000);
-    }
 
     // Add a song to the queue
     async add(songUrl) {
@@ -75,30 +60,34 @@ module.exports = class QueueHandler {
 
             // Play the first song in the playlist if the queue only has this playlist in it
             if (queue.songs.length == playlist.items.length) {
-                this.play(playlist.items[0]);
+                play(playlist.items[0]);
             }
         } else {
             // Add song to queue, then if queue is empty start playing it
             queue.songs.push(parsedUrl);
             if (queue.songs.length == 1) {
-                this.play(parsedUrl);
+                play(parsedUrl);
             }
         }
     };
 
     // Plays a song in the queue. Calls itself when a song ends, as long as the queue still has more songs
     async play(song) {
+        connectionHandler.play(song.shortUrl);
+
+
+
         // Send url to ytdl, using the audio only option. dlChunkSize of 0 is recommended for Discord bots
-        const stream = await ytdl(song.shortUrl, { filter: 'audioonly', dlChunkSize: 0 });
+        // const stream = await ytdl(song.shortUrl, { filter: 'audioonly', dlChunkSize: 0 });
 
         // Play the ytdl stream
-        const dispatcher = queue.connection.play(stream).on("finish", () => {
+        // const dispatcher = this.connectionHandler.play(stream).on("finish", () => {
             // Once song is finished, remove it and play the next song as long as the queue isn't empty
-            queue.songs.shift();
-            queue.songs.length != 0 ? this.play(queue.songs[0]) : queue.textChannel.send('Queue empty');
-        });
+            // this.queue.songs.shift();
+            // this.queue.songs.length != 0 ? this.play(queue.songs[0]) : queue.textChannel.send('Queue empty');
+        // });
 
-        dispatcher.setVolumeLogarithmic(queue.volume / 5);
+        // dispatcher.setVolumeLogarithmic(queue.volume / 5);
         queue.textChannel.send(`Now playing **${song.title}**`);
     };
 
