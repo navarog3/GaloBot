@@ -12,11 +12,9 @@ module.exports = {
             option.setName('url')
                 .setDescription('Youtube song or playlist link.')
                 .setRequired(true))
-    , async execute(interaction) {
-        const url = interaction.options.getString('url');
-
-        // Add the requested song to the queue
-        await queueHandler.init(interaction);
-        await queueHandler.add(url);
+    , execute(interaction) {
+        // Initialize the queueHandler and then Add the requested song to the queue
+        queueHandler.init(interaction);
+        queueHandler.add(interaction.options.getString('url'));
     },
 };
