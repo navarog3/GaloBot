@@ -1,10 +1,10 @@
-Use this to set a song's starttime: https://issuehunt.io/r/fent/node-ytdl-core/issues/838
-- in the queue.connection.play() function, include { seek: X } where X is how many seconds into the song to start
-- seems flakey and inconsistent, might not include this feature due to that
-
 Planned commands (✅: Done, 🟨: WIP, 🟥: Not started)
-/play🟨
-- accepts either a song or playlist link. if song, play it. if playlist, play first song and add rest to queue
+/play✅
+- accepts a song, plays from the store if it's downloaded, else download it
+- CLAs: loop🟥, shuffle🟥
+
+/skip🟥
+- skips the current song and moves to the next one in the queue
 
 /queue🟥
 - prints the current song queue to chat
@@ -12,13 +12,7 @@ Planned commands (✅: Done, 🟨: WIP, 🟥: Not started)
 /clear🟥
 - clears out the queue
 
-/skip🟥
-- skips the current song and moves to the next one in the queue
-
 /shuffle🟥
 - randomizes the order of the current queue
 
-/loop🟥
-- have two suboptions: one and all
-  - one loops just the current song
-  - all loops the whole queue
+Handle playlists🟥

@@ -1,10 +1,10 @@
-const { createAudioResource, createAudioPlayer, joinVoiceChannel, VoiceConnectionStatus } = require('@discordjs/voice');
+const { createAudioResource, createAudioPlayer, joinVoiceChannel, VoiceConnectionStatus, AudioPlayerStatus } = require('@discordjs/voice');
 const ytdl = require('ytdl-core');
 const ytpl = require('ytpl');
 const fs = require('fs');
 const events = require('events');
 
-var queue;
+var songQueue;
 var isInit = false;
 const player = createAudioPlayer();
 const queueEvents = new events.EventEmitter();
@@ -16,19 +16,18 @@ module.exports = class QueueHandler {
     init(interaction) {
         // If already initialized, just update the interaction but nothing else
         if (isInit) {
-            this.queue.interaction = interaction;
+            this.songQueue.interaction = interaction;
             return;
         }
 
-        const voiceChannel = interaction.member.voice.channel;
-
         // Set global vars
-        this.queue = {
+        this.songQueue = {
             interaction: interaction,
             songs: []
         };
 
         // Check to see if the user is in a voice channel
+        const voiceChannel = interaction.member.voice.channel;
         if (!voiceChannel) {
             interaction.reply('You need to be in a voice channel to play music.');
             return;
@@ -44,6 +43,14 @@ module.exports = class QueueHandler {
         // Once bot connects to the voice channel, subscribe the player
         connection.on(VoiceConnectionStatus.Ready, (oldState, newState) => {
             connection.subscribe(player);
+        });
+
+        // When the player enters the idle state, play the next song if there is one
+        player.on(AudioPlayerStatus.Idle, () => {
+            this.songQueue.songs.shift();
+            if (this.songQueue.songs.length != 0) {
+                this.enqueue(songQueue.songs[0], true);
+            }
         });
 
         isInit = true;
@@ -64,39 +71,30 @@ module.exports = class QueueHandler {
         };
 
         // Need to await as if the file to play is already stored, the interactions collide
-        await this.queue.interaction.deferReply();
+        await this.songQueue.interaction.deferReply();
 
         // Grab the song from YouTube unless it's already in the local store
         this.fetchSong(song);
 
         // Once the song is loaded, push the song to the queue and play it
         queueEvents.on(videoId + ' loaded', () => {
-            this.queue.interaction.editReply('Now playing ' + song.rawUrl);
-            this.enqueue(song);
+            this.enqueue(song, false);
         });
 
         //  stream.on('info', (info) => {
         //     const listLoc = rawUrl.indexOf('list=');
-        //     const timeLoc = rawUrl.indexOf('&t=');
         //     var playlist = { items: {} };
-        //     var startTime = 0;
 
         //     if (listLoc != -1) {
         //         // Get the playlist ID from the url
         //         playlist = ytpl.getPlaylistID(rawUrl);
         //     }
 
-        //     if (timeLoc != -1) {
-        //         // Get the time from the url
-        //         startTime = rawUrl.substring(timeLoc + 3);
-        //     }
-
         //     // Save info as a song object
         //     const song = {
         //         title: info.videoDetails.title,
         //         shortUrl: info.videoDetails.video_url,
-        //         playlist: playlist,
-        //         startTime: startTime
+        //         playlist: playlist
         //     };
 
         //     // If song has a playlist url
@@ -116,47 +114,69 @@ module.exports = class QueueHandler {
         // });
     };
 
-    // Pause the player
+    // Pauses the player
     pause() {
         if (player.state.status == 'playing') {
             player.pause();
-            this.queue.interaction.reply('Song paused');
+            this.songQueue.interaction.reply('Song paused');
         } else {
-            this.queue.interaction.reply('Nothing is playing');
+            this.songQueue.interaction.reply('Nothing is playing');
         }
     }
 
-    // Unpause the player
+    // Unpauses the player
     unpause() {
         if (player.state.status == 'paused') {
             player.unpause();
-            this.queue.interaction.reply('Song resumed');
+            this.songQueue.interaction.reply('Song resumed');
         } else {
-            this.queue.interaction.reply('Nothing is paused');
+            this.songQueue.interaction.reply('Nothing is paused');
         }
     }
 
     // Skips the current song
     skip() {
-        this.queue.interaction.reply('Coming soon');
+        this.songQueue.interaction.reply('Coming soon');
+    }
+
+    // Prints the current queue to chat
+    queue() {
+        var songList = '';
+
+        for (let i = 0; i < this.songQueue.songs.length; i++) {
+            songList += (this.songQueue.songs[i].rawUrl + '\n');
+        }
+
+        // Print out the queue, stripping the trailing newline off
+        this.songQueue.interaction.reply('Queue: ' + songList.slice(0, -1));
+    }
+
+    // Empties the queue
+    clear() {
+        this.songQueue.interaction.reply('Coming soon');
+    }
+
+    // Randomizes the order of the queue
+    shuffle() {
+        this.songQueue.interaction.reply('Coming soon');
     }
 
     /* ========== UTILITIES ========== */
 
-    // Plays a song in the queue. Calls itself when a song ends, as long as the queue still has more songs
-    enqueue(song) {
-        this.queue.songs.push(song);
-
-        if (queue.songs.length == 1) {
-            player.play(createAudioResource(song.filePath));
+    // Adds a song to the queue. Autoplay is there to change the response behavior
+    enqueue(song, autoPlay) {
+        if (!autoPlay) {
+            this.songQueue.interaction.editReply('Now playing ' + song.rawUrl);
+        } else {
+            this.songQueue.interaction.channel.send('Now playing ' + song.rawUrl);
         }
 
-        // Once song is finished, remove it and play the next song as long as the queue isn't empty
-        // this.queue.songs.shift();
-        // this.queue.songs.length != 0 ? this.enqueue(queue.songs[0]) : queue.textChannel.send('Queue empty');
+        // Push the song to the queue and play it
+        this.songQueue.songs.push(song);
+        player.play(createAudioResource(song.filePath));
     };
 
-    // If the song already exists on disk, grab that file. Else, download from youtube
+    // If the song already exists on disk, grab that file. Else, download from YouTube
     async fetchSong(song) {
         fs.access(song.filePath, fs.constants.F_OK, async (err) => {
             if (err) {
