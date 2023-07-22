@@ -2,6 +2,10 @@ const { readdirSync } = require('node:fs');
 const path = require('node:path');
 const { Client, Collection, Events, IntentsBitField } = require('discord.js');
 const { token } = require('./config.json');
+const QueueHandler = require('./queue-handler.js');
+
+// Create a the song queue
+var queueHandler = new QueueHandler;
 
 // Create new client instance
 const myIntents = new IntentsBitField();
@@ -39,8 +43,8 @@ client.on(Events.InteractionCreate, async interaction => {
     console.error(`No command matching ${interaction.commmandName} was found.`);
     return;
   }
-
-  await command.execute(interaction);
+  queueHandler.init(interaction);
+  await command.execute(interaction, queueHandler);
 });
 
 // Log into Discord with the bot's token

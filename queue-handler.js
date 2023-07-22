@@ -14,13 +14,16 @@ const musicStore = 'M:\\GaloBot Store\\';
 module.exports = class QueueHandler {
     // Initializes the QueueHandler object, setting important information
     init(interaction) {
-        // If already initialized, don't do it again
-        if (isInit) return;
+        // If already initialized, just update the interaction but nothing else
+        if (isInit) {
+            this.queue.interaction = interaction;
+            return;
+        }
 
         const voiceChannel = interaction.member.voice.channel;
 
         // Set global vars
-        queue = {
+        this.queue = {
             interaction: interaction,
             songs: []
         };
@@ -46,21 +49,30 @@ module.exports = class QueueHandler {
         isInit = true;
     };
 
-    // Adds a song or playlist to the queue
-    async add(rawUrl) {
+    /* ========== COMMANDS ========== */
+
+    // Plays a song
+    async play(rawUrl) {
         // Make sure it's initialized first
         if (!isInit) return;
 
         const videoId = rawUrl.split('https://youtu.be/')[1];
-        const filePath = musicStore + videoId + '.webm';
+        const song = {
+            rawUrl: rawUrl,
+            videoId: videoId,
+            filePath: musicStore + videoId + '.webm'
+        };
 
-        queue.interaction.deferReply('Fetching song...');
+        // Need to await as if the file to play is already stored, the interactions collide
+        await this.queue.interaction.deferReply();
 
-        this.fetchSong(rawUrl, videoId, filePath);
+        // Grab the song from YouTube unless it's already in the local store
+        this.fetchSong(song);
 
+        // Once the song is loaded, push the song to the queue and play it
         queueEvents.on(videoId + ' loaded', () => {
-            // queue.songs.push(song);
-            this.play(filePath);
+            this.queue.interaction.editReply('Now playing ' + song.rawUrl);
+            this.enqueue(song);
         });
 
         //  stream.on('info', (info) => {
@@ -104,30 +116,60 @@ module.exports = class QueueHandler {
         // });
     };
 
+    // Pause the player
+    pause() {
+        if (player.state.status == 'playing') {
+            player.pause();
+            this.queue.interaction.reply('Song paused');
+        } else {
+            this.queue.interaction.reply('Nothing is playing');
+        }
+    }
+
+    // Unpause the player
+    unpause() {
+        if (player.state.status == 'paused') {
+            player.unpause();
+            this.queue.interaction.reply('Song resumed');
+        } else {
+            this.queue.interaction.reply('Nothing is paused');
+        }
+    }
+
+    // Skips the current song
+    skip() {
+        this.queue.interaction.reply('Coming soon');
+    }
+
+    /* ========== UTILITIES ========== */
+
     // Plays a song in the queue. Calls itself when a song ends, as long as the queue still has more songs
-    play(filePath) {
-        player.play(createAudioResource(filePath));
-        // queue.interaction.reply('Now playing song');
+    enqueue(song) {
+        this.queue.songs.push(song);
+
+        if (queue.songs.length == 1) {
+            player.play(createAudioResource(song.filePath));
+        }
 
         // Once song is finished, remove it and play the next song as long as the queue isn't empty
         // this.queue.songs.shift();
-        // this.queue.songs.length != 0 ? this.play(queue.songs[0]) : queue.textChannel.send('Queue empty');
+        // this.queue.songs.length != 0 ? this.enqueue(queue.songs[0]) : queue.textChannel.send('Queue empty');
     };
 
     // If the song already exists on disk, grab that file. Else, download from youtube
-    async fetchSong(rawUrl, videoId, filePath) {
-        fs.access(filePath, fs.constants.F_OK, (err) => {
+    async fetchSong(song) {
+        fs.access(song.filePath, fs.constants.F_OK, async (err) => {
             if (err) {
                 // File isn't on disk, need to download
-                ytdl(rawUrl, {
+                ytdl(song.rawUrl, {
                     filter: 'audioonly',
                     quality: 'highestaudio'
-                }).pipe(fs.createWriteStream(filePath)).on('finish', () => {
-                    queueEvents.emit(videoId + ' loaded');
+                }).pipe(fs.createWriteStream(song.filePath)).on('finish', () => {
+                    queueEvents.emit(song.videoId + ' loaded');
                 });
             } else {
                 // File is on disk, no need to download
-                queueEvents.emit(videoId + ' loaded');
+                queueEvents.emit(song.videoId + ' loaded');
             }
         });
     };
