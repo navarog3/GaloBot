@@ -1,10 +1,12 @@
 const { readdirSync } = require('node:fs');
 const path = require('node:path');
-const { Client, Collection, Events, GatewayIntentBits } = require('discord.js');
+const { Client, Collection, Events, IntentsBitField } = require('discord.js');
 const { token } = require('./config.json');
 
 // Create new client instance
-const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+const myIntents = new IntentsBitField();
+myIntents.add(IntentsBitField.Flags.Guilds, IntentsBitField.Flags.GuildVoiceStates);
+const client = new Client({ intents: myIntents });
 
 // Get path to commands directory
 client.commands = new Collection();
