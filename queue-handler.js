@@ -49,7 +49,8 @@ module.exports = class QueueHandler {
         player.on(AudioPlayerStatus.Idle, () => {
             this.songQueue.songs.shift();
             if (this.songQueue.songs.length != 0) {
-                this.enqueue(songQueue.songs[0], true);
+                
+                this.enqueue(this.songQueue.songs[0], true);
             }
         });
 
@@ -63,7 +64,16 @@ module.exports = class QueueHandler {
         // Make sure it's initialized first
         if (!isInit) return;
 
-        const videoId = rawUrl.split('https://youtu.be/')[1];
+        var videoId;
+        rawUrl = rawUrl.trim();
+
+        try {
+            videoId = ytdl.getVideoID(rawUrl);
+        } catch (error) {
+            this.songQueue.interaction.reply('Sorry, I couldn\'t find the song "' + rawUrl + '"\nPlease make sure it is a valid YouTube URL.');
+            return;
+        }
+
         const song = {
             rawUrl: rawUrl,
             videoId: videoId,
@@ -77,9 +87,10 @@ module.exports = class QueueHandler {
         this.fetchSong(song);
 
         // Once the song is loaded, push the song to the queue and play it
-        queueEvents.on(videoId + ' loaded', () => {
-            this.enqueue(song, false);
-        });
+        // queueEvents.on(videoId + ' loaded', () => {
+        //     console.log('load event triggered for ' + videoId);
+        //     this.enqueue(song, false);
+        // });
 
         //  stream.on('info', (info) => {
         //     const listLoc = rawUrl.indexOf('list=');
@@ -112,6 +123,7 @@ module.exports = class QueueHandler {
         //         this.play(song, stream);
         //     }
         // });
+
     };
 
     // Pauses the player
@@ -144,11 +156,15 @@ module.exports = class QueueHandler {
         var songList = '';
 
         for (let i = 0; i < this.songQueue.songs.length; i++) {
-            songList += (this.songQueue.songs[i].rawUrl + '\n');
+            if (i == 0) {
+                songList = ('Now playing: <' + this.songQueue.songs[i].rawUrl + '>\n');
+            } else {
+                songList += (i + ': <' + this.songQueue.songs[i].rawUrl + '>\n');
+            }
         }
 
         // Print out the queue, stripping the trailing newline off
-        this.songQueue.interaction.reply('Queue: ' + songList.slice(0, -1));
+        this.songQueue.interaction.reply(songList == '' ? 'Queue is empty! Use /play to add something' : songList.slice(0, -1));
     }
 
     // Empties the queue
@@ -163,17 +179,21 @@ module.exports = class QueueHandler {
 
     /* ========== UTILITIES ========== */
 
-    // Adds a song to the queue. Autoplay is there to change the response behavior
+    // Adds a song to the queue
     enqueue(song, autoPlay) {
         if (!autoPlay) {
-            this.songQueue.interaction.editReply('Now playing ' + song.rawUrl);
-        } else {
-            this.songQueue.interaction.channel.send('Now playing ' + song.rawUrl);
+            if (this.songQueue.songs.length != 0) {
+                this.songQueue.interaction.editReply('Added <' + song.rawUrl + '> to the queue in position ' + this.songQueue.songs.length);
+            } else {
+                this.songQueue.interaction.editReply('Now playing <' + song.rawUrl + '>');
+            }
+            this.songQueue.songs.push(song);
         }
-
-        // Push the song to the queue and play it
-        this.songQueue.songs.push(song);
-        player.play(createAudioResource(song.filePath));
+        
+        // Push the song to the queue and play it if there's no song currently playing
+        if (player.state.status == 'idle') {
+            player.play(createAudioResource(song.filePath));
+        }
     };
 
     // If the song already exists on disk, grab that file. Else, download from YouTube
@@ -185,11 +205,11 @@ module.exports = class QueueHandler {
                     filter: 'audioonly',
                     quality: 'highestaudio'
                 }).pipe(fs.createWriteStream(song.filePath)).on('finish', () => {
-                    queueEvents.emit(song.videoId + ' loaded');
+                    this.enqueue(song, false);
                 });
             } else {
                 // File is on disk, no need to download
-                queueEvents.emit(song.videoId + ' loaded');
+                this.enqueue(song, false);
             }
         });
     };
