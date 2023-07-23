@@ -5,6 +5,6 @@ module.exports = {
         .setName('shuffle')
         .setDescription('Randomly reorders the queue, including the currently playing song.')
     , execute(interaction, queueHandler) {
-        queueHandler.shuffle();
+        queueHandler.shuffle(interaction);
     }
 };

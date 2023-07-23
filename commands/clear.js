@@ -5,6 +5,6 @@ module.exports = {
         .setName('clear')
         .setDescription('Removes all songs from the queue and stops the current song.')
     , execute(interaction, queueHandler) {
-        queueHandler.clear();
+        queueHandler.clear(interaction);
     }
 };

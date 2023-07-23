@@ -5,6 +5,6 @@ module.exports = {
         .setName('unpause')
         .setDescription('Unpauses the currently paused song.')
     , execute(interaction, queueHandler) {
-        queueHandler.unpause();
+        queueHandler.unpause(interaction);
     }
 };

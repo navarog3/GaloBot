@@ -8,6 +8,6 @@ module.exports = {
             option.setName('url')
                 .setDescription('YouTube song or playlist link.'))
     , execute(interaction, queueHandler) {
-        queueHandler.play(interaction.options.getString('url'));
+        queueHandler.play(interaction);
     }
 };

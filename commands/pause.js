@@ -5,6 +5,6 @@ module.exports = {
         .setName('pause')
         .setDescription('Pauses the currently playing song.')
     , execute(interaction, queueHandler) {
-        queueHandler.pause();
+        queueHandler.pause(interaction);
     }
 };

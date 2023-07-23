@@ -5,6 +5,6 @@ module.exports = {
         .setName('skip')
         .setDescription('Skips the current song.')
     , execute(interaction, queueHandler) {
-        queueHandler.skip();
+        queueHandler.skip(interaction);
     }
 };

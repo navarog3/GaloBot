@@ -3,7 +3,6 @@ const ytdl = require('ytdl-core');
 const ytpl = require('ytpl');
 const fs = require('fs');
 
-var songQueue;
 var isInit = false;
 const player = createAudioPlayer();
 const musicStore = 'M:\\GaloBot Store\\';
@@ -19,10 +18,7 @@ module.exports = class QueueHandler {
         }
 
         // Set global vars
-        this.songQueue = {
-            interaction: interaction,
-            songs: []
-        };
+        this.songQueue = [];
 
         // Check to see if the user is in a voice channel
         const voiceChannel = interaction.member.voice.channel;
@@ -45,10 +41,10 @@ module.exports = class QueueHandler {
 
         // When the player enters the idle state, play the next song if there is one
         player.on(AudioPlayerStatus.Idle, () => {
-            this.songQueue.songs.shift();
-            if (this.songQueue.songs.length != 0) {
-
-                this.enqueue(this.songQueue.songs[0], true);
+            console.log('hello');
+            this.songQueue.shift();
+            if (this.songQueue.length != 0) {
+                this.enqueue(this.songQueue[0], true);
             }
         });
 
@@ -58,14 +54,16 @@ module.exports = class QueueHandler {
     /* ========== COMMANDS ========== */
 
     // Plays a song
-    async play(rawUrl) {
+    async play(interaction) {
         // Make sure it's initialized first
         if (!isInit) return;
+
+        var rawUrl = interaction.options.getString('url');
 
         // Easter egg if url isn't supplied
         if (rawUrl == null) {
             player.play(createAudioResource('media/nullSong.webm'));
-            this.songQueue.interaction.reply('Next time submit a url to get the song you want played.');
+            interaction.reply('Next time submit a url to get the song you want played.');
             return;
         }
 
@@ -75,7 +73,7 @@ module.exports = class QueueHandler {
         try {
             videoId = ytdl.getVideoID(rawUrl);
         } catch (error) {
-            this.songQueue.interaction.reply('Sorry, I couldn\'t find the song "' + rawUrl + '"\nPlease make sure it is a valid YouTube URL.');
+            interaction.reply('Sorry, I couldn\'t find the song "' + rawUrl + '"\nPlease make sure it is a valid YouTube URL.');
             return;
         }
 
@@ -85,11 +83,18 @@ module.exports = class QueueHandler {
             filePath: musicStore + videoId + '.webm'
         };
 
-        // Need to await as if the file to play is already stored, the interactions collide
-        await this.songQueue.interaction.deferReply();
+        // Defer the reply because without it the bot only gets 3 seconds to respond
+        await interaction.deferReply();
 
         // Grab the song from YouTube unless it's already in the local store
-        this.fetchSong(song);
+        await this.fetchSong(song);
+
+        // Reply to the interaction after pulling the song in
+        if (this.songQueue.length != 0) {
+            interaction.editReply('Added <' + song.rawUrl + '> to the queue in position ' + this.songQueue.length);
+        } else {
+            interaction.editReply('Now playing <' + song.rawUrl + '>');
+        }
 
         //  stream.on('info', (info) => {
         //     const listLoc = rawUrl.indexOf('list=');
@@ -126,22 +131,22 @@ module.exports = class QueueHandler {
     };
 
     // Pauses the player
-    pause() {
+    pause(interaction) {
         if (player.state.status == 'playing') {
             player.pause();
-            this.songQueue.interaction.reply('Song paused');
+            interaction.reply('Song paused');
         } else {
-            this.songQueue.interaction.reply('Nothing is playing');
+            interaction.reply('Nothing is playing');
         }
     }
 
     // Unpauses the player
-    unpause() {
+    unpause(interaction) {
         if (player.state.status == 'paused') {
             player.unpause();
-            this.songQueue.interaction.reply('Song resumed');
+            interaction.reply('Song resumed');
         } else {
-            this.songQueue.interaction.reply('Nothing is paused');
+            interaction.reply('Nothing is paused');
         }
     }
 
@@ -151,29 +156,29 @@ module.exports = class QueueHandler {
     }
 
     // Prints the current queue to chat
-    queue() {
+    queue(interaction) {
         var songList = '';
 
-        for (let i = 0; i < this.songQueue.songs.length; i++) {
+        for (let i = 0; i < this.songQueue.length; i++) {
             if (i == 0) {
-                songList = ('Now playing: <' + this.songQueue.songs[i].rawUrl + '>\n');
+                songList = ('Now playing: <' + this.songQueue[i].rawUrl + '>\n');
             } else {
-                songList += (i + ': <' + this.songQueue.songs[i].rawUrl + '>\n');
+                songList += (i + ': <' + this.songQueue[i].rawUrl + '>\n');
             }
         }
 
         // Print out the queue, stripping the trailing newline off
-        this.songQueue.interaction.reply(songList == '' ? 'Queue is empty! Use /play to add something' : songList.slice(0, -1));
+        interaction.reply(songList == '' ? 'Queue is empty! Use /play to add something' : songList.slice(0, -1));
     }
 
     // Empties the queue
-    clear() {
-        this.songQueue.interaction.reply('Coming soon');
+    clear(interaction) {
+        interaction.reply('Coming soon');
     }
 
     // Randomizes the order of the queue
-    shuffle() {
-        this.songQueue.interaction.reply('Coming soon');
+    shuffle(interaction) {
+        interaction.reply('Coming soon');
     }
 
     /* ========== UTILITIES ========== */
@@ -181,12 +186,7 @@ module.exports = class QueueHandler {
     // Adds a song to the queue
     enqueue(song, autoPlay) {
         if (!autoPlay) {
-            if (this.songQueue.songs.length != 0) {
-                this.songQueue.interaction.editReply('Added <' + song.rawUrl + '> to the queue in position ' + this.songQueue.songs.length);
-            } else {
-                this.songQueue.interaction.editReply('Now playing <' + song.rawUrl + '>');
-            }
-            this.songQueue.songs.push(song);
+            this.songQueue.push(song);
         }
 
         // Push the song to the queue and play it if there's no song currently playing
