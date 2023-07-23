@@ -2,12 +2,10 @@ const { createAudioResource, createAudioPlayer, joinVoiceChannel, VoiceConnectio
 const ytdl = require('ytdl-core');
 const ytpl = require('ytpl');
 const fs = require('fs');
-const events = require('events');
 
 var songQueue;
 var isInit = false;
 const player = createAudioPlayer();
-const queueEvents = new events.EventEmitter();
 const musicStore = 'M:\\GaloBot Store\\';
 
 // Handles the song queue.
@@ -49,7 +47,7 @@ module.exports = class QueueHandler {
         player.on(AudioPlayerStatus.Idle, () => {
             this.songQueue.songs.shift();
             if (this.songQueue.songs.length != 0) {
-                
+
                 this.enqueue(this.songQueue.songs[0], true);
             }
         });
@@ -63,6 +61,13 @@ module.exports = class QueueHandler {
     async play(rawUrl) {
         // Make sure it's initialized first
         if (!isInit) return;
+
+        // Easter egg if url isn't supplied
+        if (rawUrl == null) {
+            player.play(createAudioResource('media/nullSong.webm'));
+            this.songQueue.interaction.reply('Next time submit a url to get the song you want played.');
+            return;
+        }
 
         var videoId;
         rawUrl = rawUrl.trim();
@@ -85,12 +90,6 @@ module.exports = class QueueHandler {
 
         // Grab the song from YouTube unless it's already in the local store
         this.fetchSong(song);
-
-        // Once the song is loaded, push the song to the queue and play it
-        // queueEvents.on(videoId + ' loaded', () => {
-        //     console.log('load event triggered for ' + videoId);
-        //     this.enqueue(song, false);
-        // });
 
         //  stream.on('info', (info) => {
         //     const listLoc = rawUrl.indexOf('list=');
@@ -189,7 +188,7 @@ module.exports = class QueueHandler {
             }
             this.songQueue.songs.push(song);
         }
-        
+
         // Push the song to the queue and play it if there's no song currently playing
         if (player.state.status == 'idle') {
             player.play(createAudioResource(song.filePath));
