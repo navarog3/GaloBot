@@ -151,8 +151,17 @@ module.exports = class QueueHandler {
     }
 
     // Skips the current song
-    skip() {
-        this.songQueue.interaction.reply('Coming soon');
+    skip(interaction) {
+        if (player.state.status == 'playing') {
+            player.pause();
+            this.songQueue.shift();
+            if (this.songQueue.length != 0) {
+                player.play(createAudioResource(this.songQueue[0].filePath));
+            }
+            interaction.reply('Skipped the current song');
+        } else {
+            interaction.reply('Nothing is playing');
+        }
     }
 
     // Prints the current queue to chat
