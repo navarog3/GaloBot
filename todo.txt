@@ -1,18 +1,20 @@
 Planned commands (✅: Done, 🟨: WIP, 🟥: Not started)
-/play✅
+✅/play
 - accepts a song, plays from the store if it's downloaded, else download it
-- CLAs: loop🟥, shuffle🟥
+- CLAs: 🟥loop, 🟥shuffle
 
-/skip🟥
+✅/skip
 - skips the current song and moves to the next one in the queue
 
-/queue🟥
+✅/queue
 - prints the current song queue to chat
 
-/clear🟥
+✅/clear
 - clears out the queue
 
-/shuffle🟥
+✅/shuffle
 - randomizes the order of the current queue
 
-Handle playlists🟥
+🟥Handle playlists
+
+🟥Some kind of super generic catch-all error handling in bot.js (reply to any errored interaction with "Oops, error" kinda thing)

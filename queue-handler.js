@@ -189,7 +189,26 @@ module.exports = class QueueHandler {
 
     // Randomizes the order of the queue
     shuffle(interaction) {
-        interaction.reply('Coming soon');
+        // Save the state of the queue and then clear it out so it can be loaded fresh
+        const queueState = this.songQueue;
+        player.stop();
+
+        // Uses the Durstenfeld shuffle algorithm (https://en.wikipedia.org/wiki/Fisher%E2%80%93Yates_shuffle#The_modern_algorithm)
+        for (var i = queueState.length - 1; i > 0; i--) {
+            var j = Math.floor(Math.random() * (i + 1));
+            [queueState[i], queueState[j]] = [queueState[j], queueState[i]];
+
+            /* The above line does this but in only 1 line, thanks to double assignment
+            var tmp = queueState[i];
+            queueState[i] = queueState[j];
+            queueState[j] = tmp; */
+        }
+
+        // Load the now-shuffled queue in and play the first song
+        this.songQueue = queueState;
+        player.play(createAudioResource(this.songQueue[0].filePath));
+        
+        interaction.reply('Queue order shuffled');
     }
 
     /* ========== UTILITIES ========== */
