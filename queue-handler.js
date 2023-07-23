@@ -11,11 +11,8 @@ const musicStore = 'M:\\GaloBot Store\\';
 module.exports = class QueueHandler {
     // Initializes the QueueHandler object, setting important information
     init(interaction) {
-        // If already initialized, just update the interaction but nothing else
-        if (isInit) {
-            this.songQueue.interaction = interaction;
-            return;
-        }
+        // If already initialized, no need to initialize again
+        if (isInit) { return; }
 
         // Set global vars
         this.songQueue = [];
@@ -23,7 +20,7 @@ module.exports = class QueueHandler {
         // Check to see if the user is in a voice channel
         const voiceChannel = interaction.member.voice.channel;
         if (!voiceChannel) {
-            interaction.reply('You need to be in a voice channel to play music.');
+            interaction.reply('You need to be in a voice channel to play music');
             return;
         }
 
@@ -65,24 +62,24 @@ module.exports = class QueueHandler {
             if (this.play.state.status == 'idle') {
                 player.play(createAudioResource('media/nullSong.webm'));
             }
-            interaction.reply('Next time submit a url to get the song you want played.');
+            interaction.reply('Next time submit a url to get the song you want played');
             return;
         }
 
         // Set variables
-        var videoId;
+        var id;
         var playlistId;
         rawUrl = rawUrl.trim();
         try {
-            videoId = ytdl.getVideoID(rawUrl);
+            id = ytdl.getVideoID(rawUrl);
         } catch (error) {
-            interaction.reply('Sorry, I couldn\'t find the song "' + rawUrl + '"\nPlease make sure it is a valid YouTube URL.');
+            interaction.reply('Sorry, I couldn\'t find the song "' + rawUrl + '"\nPlease make sure it is a valid YouTube URL');
             return;
         }
         const song = {
             rawUrl: rawUrl,
-            videoId: videoId,
-            filePath: musicStore + videoId + '.webm'
+            id: id,
+            filePath: musicStore + id + '.webm'
         };
 
         // Defer the reply because without it the bot only gets 3 seconds to respond
@@ -97,7 +94,7 @@ module.exports = class QueueHandler {
             const playlistInfo = await this.fetchPlaylist(playlistId);
 
             // Reply to the interaction
-            interaction.editReply('Playlist processed, added ' + playlistInfo.length + ' songs to the queue.');
+            interaction.editReply('Playlist processed, added ' + playlistInfo.length + ' songs to the queue');
 
         } else {
             // No playlist to handle, just add the one song
@@ -105,9 +102,9 @@ module.exports = class QueueHandler {
 
             // Reply to the interaction after pulling the song in
             if (this.songQueue.length != 0) {
-                interaction.editReply('Added <' + song.rawUrl + '> to the queue in position ' + this.songQueue.length + '.');
+                interaction.editReply('Added <' + song.rawUrl + '> to the queue in position ' + this.songQueue.length);
             } else {
-                interaction.editReply('Now playing <' + song.rawUrl + '>.');
+                interaction.editReply('Now playing <' + song.rawUrl + '>');
             }
         }
     }
@@ -116,9 +113,9 @@ module.exports = class QueueHandler {
     pause(interaction) {
         if (player.state.status == 'playing') {
             player.pause();
-            interaction.reply('Song paused.');
+            interaction.reply('Song paused');
         } else {
-            interaction.reply('Nothing is playing.');
+            interaction.reply('Nothing is playing');
         }
     }
 
@@ -126,23 +123,23 @@ module.exports = class QueueHandler {
     unpause(interaction) {
         if (player.state.status == 'paused') {
             player.unpause();
-            interaction.reply('Song resumed.');
+            interaction.reply('Song resumed');
         } else {
-            interaction.reply('Nothing is paused.');
+            interaction.reply('Nothing is paused');
         }
     }
 
     // Skips the current song
     skip(interaction) {
-        if (player.state.status == 'playing') {
+        if (player.state.status != 'idle') {
             player.pause();
             this.songQueue.shift();
             if (this.songQueue.length != 0) {
                 player.play(createAudioResource(this.songQueue[0].filePath));
             }
-            interaction.reply('Skipped the current song.');
+            interaction.reply('Skipped the current song');
         } else {
-            interaction.reply('Nothing is playing.');
+            interaction.reply('Nothing is playing');
         }
     }
 
@@ -159,14 +156,14 @@ module.exports = class QueueHandler {
         }
 
         // Print out the queue, stripping the trailing newline off
-        interaction.reply(songList == '' ? 'Queue is empty! Use /play to add something.' : songList.slice(0, -1));
+        interaction.reply(songList == '' ? 'Queue is empty! Use /play to add something' : songList.slice(0, -1));
     }
 
     // Empties the queue
     clear(interaction) {
         this.songQueue = [];
         player.stop();
-        interaction.reply('Queue cleared.');
+        interaction.reply('Queue cleared');
     }
 
     // Randomizes the order of the queue
@@ -209,7 +206,7 @@ module.exports = class QueueHandler {
 
     // If the song already exists on disk, grab that file. Else, download from YouTube
     async fetchSong(song) {
-        fs.access(song.filePath, fs.constants.F_OK, async (err) => {
+        fs.access(song.filePath, fs.constants.F_OK, (err) => {
             if (err) {
                 // File isn't on disk, need to download
                 ytdl(song.rawUrl, {
@@ -225,25 +222,69 @@ module.exports = class QueueHandler {
         });
     }
 
+    // Takes in two song arrays and returns an array in the same order as the first one
+    // Returns a new array containing items from incorrectOrder but in the order of correctOrder
+    enqueuePlaylist(correctOrder, incorrectOrder) {
+        var returnOrder = [];
+        for (let i = 0; i < correctOrder.length; i++) {
+            for (let j = 0; j < incorrectOrder.length; j++) {
+                // This will add songs to the songQueue in the order of items
+                if (correctOrder[i].id == incorrectOrder[j].id) {
+                    returnOrder.push(incorrectOrder[j]);
+                    break;
+                }
+            }
+        }
+        this.songQueue = this.songQueue.concat(returnOrder);
+
+        // songQueue has been populated, play the queue if something's not already playing
+        if (player.state.status == 'idle') {
+            player.play(createAudioResource(this.songQueue[0].filePath));
+        }
+    }
+
     // Fetches an entire playlist from YouTube. Depending on the size of the playlist, this may take a long time
     async fetchPlaylist(playlistId) {
         const playlist = await ytpl(playlistId);
         const items = playlist.items;
+        var tempQueue = [];
 
         for (let i = 0; i < items.length; i++) {
             // First, build the song object
             const item = items[i];
-            const videoId = item.id;
-            const rawUrl = 'https://youtu.be/' + videoId;
+            const id = item.id;
+            const rawUrl = 'https://youtu.be/' + id;
             const song = {
                 rawUrl: rawUrl,
-                videoId: videoId,
-                filePath: musicStore + videoId + '.webm'
+                id: id,
+                filePath: musicStore + id + '.webm'
             };
-            // BUG: if songs need to be downloaded, it adds them to the playlist in order of download speed rather than playlist order
-            
-            // Then fetch the song and repeat until every song in the playlist is fetched
-            await this.fetchSong(song);
+
+            // Can't just call fetchSong() because it won't necessarily maintain proper queue order if songs need to be downloaded
+            fs.access(song.filePath, fs.constants.F_OK, (err) => {
+                if (err) {
+                    // File isn't on disk, need to download
+                    ytdl(song.rawUrl, {
+                        filter: 'audioonly',
+                        quality: 'highestaudio'
+                    }).pipe(fs.createWriteStream(song.filePath)).on('finish', () => {
+                        tempQueue.push(song);
+                        // If the lengths match, every song to add has been added so populate the real queue
+                        if (tempQueue.length == items.length) {
+                            // items is in the correct order, tempQueue isn't necessarily
+                            this.enqueuePlaylist(items, tempQueue);
+                        }
+                    });
+                } else {
+                    // File is on disk, no need to download
+                    tempQueue.push(song);
+                    // Need to do this here as well, in case the playlist contains some downloaded songs and some not
+                    if (tempQueue.length == items.length) {
+                        // items is in the correct order, tempQueue isn't necessarily
+                        this.enqueuePlaylist(items, tempQueue);
+                    }
+                }
+            });
         }
         // Return useful info
         return {

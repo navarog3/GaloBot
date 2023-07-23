@@ -15,8 +15,6 @@ Planned commands (✅: Done, 🟨: WIP, 🟥: Not started)
 ✅/shuffle
 - randomizes the order of the current queue
 
-🟨Handle playlists
-
-🟥Some kind of super generic catch-all error handling in bot.js (reply to any errored interaction with "Oops, error" kinda thing)
+✅Handle playlists
 
 🟥If bot is the only one in a voice channel, disconnect and ?clear the queue?
