@@ -40,8 +40,8 @@ module.exports = class QueueHandler {
         });
 
         // When the player enters the idle state, play the next song if there is one
+        // Note: this event WILL trigger when using player.stop() so be wary of using that method
         player.on(AudioPlayerStatus.Idle, () => {
-            console.log('hello');
             this.songQueue.shift();
             if (this.songQueue.length != 0) {
                 this.enqueue(this.songQueue[0], true);
@@ -182,7 +182,9 @@ module.exports = class QueueHandler {
 
     // Empties the queue
     clear(interaction) {
-        interaction.reply('Coming soon');
+        this.songQueue = [];
+        player.stop();
+        interaction.reply('Queue cleared');
     }
 
     // Randomizes the order of the queue
