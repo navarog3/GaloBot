@@ -16,8 +16,10 @@ module.exports = class QueueHandler {
         // If already initialized, no need to initialize again
         if (isInit) { return; }
 
-        // Set global vars
+        // Initialize variables
         this.songQueue = [];
+        this.loop_song = false;
+        this.loop_queue = false;
 
         // Check to see if the user is in a voice channel
         const voiceChannel = interaction.member.voice.channel;
@@ -38,10 +40,20 @@ module.exports = class QueueHandler {
             connection.subscribe(player);
         });
 
-        // When the player enters the idle state, play the next song if there is one
+        // Auto-advances the queue when a song finishes
         // Note: this event WILL trigger when using player.stop() so be wary of using that method
         player.on(AudioPlayerStatus.Idle, () => {
-            this.songQueue.shift();
+            // If queue looping is on, take the song just played and stick it to the end of the queue
+            if (this.loop_queue) {
+                this.songQueue.push(this.songQueue[0]);
+            }
+
+            // Remove current song unless song looping is on
+            if (!this.loop_song) {
+                this.songQueue.shift();
+            }
+
+            // If the queue isn't empty, play the next song
             if (this.songQueue.length != 0) {
                 this.enqueue(this.songQueue[0], true);
             }
@@ -54,25 +66,20 @@ module.exports = class QueueHandler {
 
     // Plays a song
     async play(interaction) {
-        // Make sure it's initialized first
-        if (!isInit) return;
-
         // Set variables
         var id;
         var playlistId;
         var rawUrl = interaction.options.getString('url').trim();
         var loop = interaction.options.getBoolean('loop');
         var shuffle = interaction.options.getBoolean('shuffle');
-
-        // Easter egg if url isn't supplied
         if (rawUrl == null) {
+            // Easter egg if url isn't supplied
             if (this.play.state.status == 'idle') {
                 player.play(createAudioResource('media/nullSong.webm'));
             }
             interaction.reply('Next time submit a url to get the song you want played');
             return;
         }
-
         try {
             id = ytdl.getVideoID(rawUrl);
         } catch (error) {
@@ -100,7 +107,7 @@ module.exports = class QueueHandler {
                 }
                 // Loop if user asked for it
                 if (loop) {
-                    this.loop();
+                    this.loop_queue = true;
                 }
                 // Reply to the interaction
                 interaction.editReply('Playlist processed, added ' + playlistInfo.length + ' songs to the queue');
@@ -114,7 +121,7 @@ module.exports = class QueueHandler {
                 }
                 // Loop if user asked for it
                 if (loop) {
-                    this.loop();
+                    this.loop_song = true;
                 }
                 // Reply to the interaction
                 if (this.songQueue.length != 0) {
@@ -212,12 +219,18 @@ module.exports = class QueueHandler {
 
     // Loops the song or entire queue, based on user's choice
     loop(interaction) {
+        // "type" can have the following values: 'loop_song', 'loop_queue'
         var type = interaction.options.getString('type');
 
+        // Set the global loop options
+        if (type == 'loop_song') {
+            this.loop_song = !this.loop_song;
 
-        // When being called from another command, interaction will be null to avoid reply collisions
-        if (interaction != null) {
-            interaction.reply('WIP');
+            this.loop_song ? interaction.reply('Looping current song') : interaction.reply('No longer looping song');
+        } else {
+            this.loop_queue = !this.loop_queue;
+
+            this.loop_queue ? interaction.reply('Looping entire queue') : interaction.reply('No longer looping queue');
         }
     }
 

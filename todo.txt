@@ -2,27 +2,39 @@ Planned commands (✅: Done, 🟨: WIP, 🟥: Not started)
 ✅/play
 - accepts a song, plays from the store if it's downloaded, else download it
 - CLAs:
-    - 🟥loop (run /loop after adding, looping song if song and queue if playlist)
+    - ✅loop (run /loop after adding, looping song if song and queue if playlist)
     - ✅shuffle (run /shuffle after adding)
 
 ✅/skip
 - skips the current song and moves to the next one in the queue
+- 🟥figure out behavior if looping (song and/or queue) is turned on
 
 ✅/queue
 - prints the current song queue to chat
 
 ✅/clear
 - clears out the queue
+-🟥Currently crashes the bot by firing the player.on(AudioPlayerStatus.Idle) event but empties the queue after the empty check is done
 
 ✅/shuffle
 - randomizes the order of the current queue
 
-🟥/loop
+✅/loop
 - CLAs:
-    - 🟥song (loop just the one song)
-    - 🟥queue (loop the entire queue)
+    - 🟨song (loop just the one song)
+    - 🟨queue (loop the entire queue)
+    - TODO: If both song loop and queue loop are on, don't loop queue as it will just keep adding the looping song to the end of the queue
 
+🟥/help
+- Lists all commands and their options
+
+🟥/customPlaylist
+- Extra credit command, do this once everything else is done
+- Break into two commands. One saves the current queue as a playlist, second takes the name of a saved playlist and loads it into the queue
+
+Other features that aren't commands
 ✅Handle playlists
+- 🟥handle just a raw playlist link without a first video
 
 🟥If bot is the only one in a voice channel, disconnect and ?clear the queue?
 
