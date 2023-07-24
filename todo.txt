@@ -1,7 +1,9 @@
 Planned commands (✅: Done, 🟨: WIP, 🟥: Not started)
 ✅/play
 - accepts a song, plays from the store if it's downloaded, else download it
-- CLAs: 🟥loop, 🟥shuffle
+- CLAs:
+    - 🟥loop (run /loop after adding, looping song if song and queue if playlist)
+    - ✅shuffle (run /shuffle after adding)
 
 ✅/skip
 - skips the current song and moves to the next one in the queue
@@ -15,6 +17,13 @@ Planned commands (✅: Done, 🟨: WIP, 🟥: Not started)
 ✅/shuffle
 - randomizes the order of the current queue
 
+🟥/loop
+- CLAs:
+    - 🟥song (loop just the one song)
+    - 🟥queue (loop the entire queue)
+
 ✅Handle playlists
 
 🟥If bot is the only one in a voice channel, disconnect and ?clear the queue?
+
+🟥Pretty up text responses (https://support.discord.com/hc/en-us/articles/210298617-Markdown-Text-101-Chat-Formatting-Bold-Italic-Underline-)

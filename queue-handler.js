@@ -7,8 +7,10 @@ var isInit = false;
 const player = createAudioPlayer();
 const musicStore = 'M:\\GaloBot Store\\';
 
-// Handles the song queue.
+// Handles the song queue
 module.exports = class QueueHandler {
+    /* ========== INITIALIZER ========== */
+
     // Initializes the QueueHandler object, setting important information
     init(interaction) {
         // If already initialized, no need to initialize again
@@ -55,7 +57,12 @@ module.exports = class QueueHandler {
         // Make sure it's initialized first
         if (!isInit) return;
 
-        var rawUrl = interaction.options.getString('url');
+        // Set variables
+        var id;
+        var playlistId;
+        var rawUrl = interaction.options.getString('url').trim();
+        var loop = interaction.options.getBoolean('loop');
+        var shuffle = interaction.options.getBoolean('shuffle');
 
         // Easter egg if url isn't supplied
         if (rawUrl == null) {
@@ -66,10 +73,6 @@ module.exports = class QueueHandler {
             return;
         }
 
-        // Set variables
-        var id;
-        var playlistId;
-        rawUrl = rawUrl.trim();
         try {
             id = ytdl.getVideoID(rawUrl);
         } catch (error) {
@@ -90,22 +93,36 @@ module.exports = class QueueHandler {
             playlistId = await ytpl.getPlaylistID(rawUrl);
 
             // This is an expensive operation, a large playlist will take a while
-            // TODO: maybe add a warning if something is currently playing, since it will interrupt playback
-            const playlistInfo = await this.fetchPlaylist(playlistId);
-
-            // Reply to the interaction
-            interaction.editReply('Playlist processed, added ' + playlistInfo.length + ' songs to the queue');
-
+            this.fetchPlaylist(playlistId, (playlistInfo) => {
+                // Shuffle if user asked for it
+                if (shuffle) {
+                    this.shuffle();
+                }
+                // Loop if user asked for it
+                if (loop) {
+                    this.loop();
+                }
+                // Reply to the interaction
+                interaction.editReply('Playlist processed, added ' + playlistInfo.length + ' songs to the queue');
+            });
         } else {
             // No playlist to handle, just add the one song
-            await this.fetchSong(song);
-
-            // Reply to the interaction after pulling the song in
-            if (this.songQueue.length != 0) {
-                interaction.editReply('Added <' + song.rawUrl + '> to the queue in position ' + this.songQueue.length);
-            } else {
-                interaction.editReply('Now playing <' + song.rawUrl + '>');
-            }
+            this.fetchSong(song, (songInfo) => {
+                // Shuffle if user asked for it
+                if (shuffle) {
+                    this.shuffle();
+                }
+                // Loop if user asked for it
+                if (loop) {
+                    this.loop();
+                }
+                // Reply to the interaction
+                if (this.songQueue.length != 0) {
+                    interaction.editReply('Added <' + song.rawUrl + '> to the queue in position ' + this.songQueue.length);
+                } else {
+                    interaction.editReply('Now playing <' + song.rawUrl + '>');
+                }
+            });
         }
     }
 
@@ -187,7 +204,21 @@ module.exports = class QueueHandler {
         this.songQueue = queueState;
         player.play(createAudioResource(this.songQueue[0].filePath));
 
-        interaction.reply('Queue order shuffled');
+        // When being called from another command, interaction will be null to avoid reply collisions
+        if (interaction != null) {
+            interaction.reply('Queue order shuffled');
+        }
+    }
+
+    // Loops the song or entire queue, based on user's choice
+    loop(interaction) {
+        var type = interaction.options.getString('type');
+
+
+        // When being called from another command, interaction will be null to avoid reply collisions
+        if (interaction != null) {
+            interaction.reply('WIP');
+        }
     }
 
     /* ========== UTILITIES ========== */
@@ -205,7 +236,7 @@ module.exports = class QueueHandler {
     }
 
     // If the song already exists on disk, grab that file. Else, download from YouTube
-    async fetchSong(song) {
+    async fetchSong(song, callback) {
         fs.access(song.filePath, fs.constants.F_OK, (err) => {
             if (err) {
                 // File isn't on disk, need to download
@@ -214,10 +245,12 @@ module.exports = class QueueHandler {
                     quality: 'highestaudio'
                 }).pipe(fs.createWriteStream(song.filePath)).on('finish', () => {
                     this.enqueue(song, false);
+                    callback(); // TODO: Add songinfo like in fetchPlaylist
                 });
             } else {
                 // File is on disk, no need to download
                 this.enqueue(song, false);
+                callback(); // TODO: Add songinfo like in fetchPlaylist
             }
         });
     }
@@ -244,7 +277,7 @@ module.exports = class QueueHandler {
     }
 
     // Fetches an entire playlist from YouTube. Depending on the size of the playlist, this may take a long time
-    async fetchPlaylist(playlistId) {
+    async fetchPlaylist(playlistId, callback) {
         const playlist = await ytpl(playlistId);
         const items = playlist.items;
         var tempQueue = [];
@@ -273,6 +306,12 @@ module.exports = class QueueHandler {
                         if (tempQueue.length == items.length) {
                             // items is in the correct order, tempQueue isn't necessarily
                             this.enqueuePlaylist(items, tempQueue);
+                            // Return useful info
+                            callback({
+                                length: items.length,
+                                title: playlist.title,
+                                author: playlist.author
+                            });
                         }
                     });
                 } else {
@@ -282,15 +321,15 @@ module.exports = class QueueHandler {
                     if (tempQueue.length == items.length) {
                         // items is in the correct order, tempQueue isn't necessarily
                         this.enqueuePlaylist(items, tempQueue);
+                        // Return useful info
+                        callback({
+                            length: items.length,
+                            title: playlist.title,
+                            author: playlist.author
+                        });
                     }
                 }
             });
         }
-        // Return useful info
-        return {
-            length: items.length,
-            title: playlist.title,
-            author: playlist.author
-        };
     }
 };
