@@ -32,7 +32,7 @@ Planned commands (✅: Done, 🟨: WIP, 🟥: Not started)
 
 Other features that aren't commands
 ✅Handle playlists
-- 🟥handle just a raw playlist link without a first video
+- ✅handle just a raw playlist link without a first video
 
 ✅Remove easter egg and move media library to the bot's folder
 

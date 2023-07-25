@@ -66,34 +66,27 @@ module.exports = class QueueHandler {
 
     /* ========== COMMANDS ========== */
 
-    // Plays a song
+    // Plays a song or adds a playlist to the queue
     async play(interaction) {
         // Set variables
-        var id;
-        var playlistId;
-        var rawUrl = interaction.options.getString('url').trim();
-        var loop = interaction.options.getBoolean('loop');
-        var shuffle = interaction.options.getBoolean('shuffle');
-
-        try {
-            id = ytdl.getVideoID(rawUrl);
-        } catch (error) {
-            interaction.reply('Sorry, I couldn\'t find the song "' + rawUrl + '"\nPlease make sure it is a valid YouTube URL');
-            return;
-        }
-        const song = {
-            rawUrl: rawUrl,
-            id: id,
-            filePath: musicStore + id + '.webm'
-        };
+        var id = '';
+        var playlistId = '';
+        const rawUrl = interaction.options.getString('url').trim();
+        const loop = interaction.options.getBoolean('loop');
+        const shuffle = interaction.options.getBoolean('shuffle');        
 
         // Defer the reply because without it the bot only gets 3 seconds to respond
         await interaction.deferReply();
 
-        // Check to see if the link is a playlist
+        // Playlists need to be handled differently
         if (rawUrl.indexOf('list=') != -1) {
-            playlistId = await ytpl.getPlaylistID(rawUrl);
-
+            try {
+                playlistId = await ytpl.getPlaylistID(rawUrl);
+            } catch (error) {
+                interaction.reply('Sorry, I couldn\'t find the playlist "' + rawUrl + '"\nPlease make sure it is a valid YouTube URL');
+                return;
+            }
+            
             // This is an expensive operation, a large playlist will take a while
             this.fetchPlaylist(playlistId, (playlistInfo) => {
                 // Shuffle if user asked for it
@@ -108,7 +101,19 @@ module.exports = class QueueHandler {
                 interaction.editReply('Playlist processed, added ' + playlistInfo.length + ' songs to the queue');
             });
         } else {
-            // No playlist to handle, just add the one song
+            // No playlist to handle, just add the song
+            try {
+                id = ytdl.getVideoID(rawUrl);
+            } catch (error) {
+                interaction.reply('Sorry, I couldn\'t find the song "' + rawUrl + '"\nPlease make sure it is a valid YouTube URL');
+                return;
+            }
+            const song = {
+                rawUrl: rawUrl,
+                id: id,
+                filePath: musicStore + id + '.webm'
+            };
+            
             this.fetchSong(song, (songInfo) => {
                 // Shuffle if user asked for it
                 if (shuffle) {
