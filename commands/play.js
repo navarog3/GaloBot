@@ -6,7 +6,8 @@ module.exports = {
         .setDescription('Plays a song or playlist via YouTube link.')
         .addStringOption(option =>
             option.setName('url')
-                .setDescription('YouTube song or playlist link.'))
+                .setDescription('YouTube song or playlist link.')
+                .setRequired(true))
         .addBooleanOption(option =>
             option.setName('loop')
                 .setDescription('Automatically runs the /loop command after adding.'))

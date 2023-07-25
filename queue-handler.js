@@ -72,14 +72,7 @@ module.exports = class QueueHandler {
         var rawUrl = interaction.options.getString('url').trim();
         var loop = interaction.options.getBoolean('loop');
         var shuffle = interaction.options.getBoolean('shuffle');
-        if (rawUrl == null) {
-            // Easter egg if url isn't supplied
-            if (this.play.state.status == 'idle') {
-                player.play(createAudioResource('media/nullSong.webm'));
-            }
-            interaction.reply('Next time submit a url to get the song you want played');
-            return;
-        }
+
         try {
             id = ytdl.getVideoID(rawUrl);
         } catch (error) {
