@@ -19,32 +19,38 @@ const commandFiles = readdirSync(commandsPath).filter(file => file.endsWith('.js
 
 // Add command files to list of available commands
 for (const file of commandFiles) {
-  const filePath = path.join(commandsPath, file);
-  const command = require(filePath);
-  if ('data' in command && 'execute' in command) {
-    client.commands.set(command.data.name, command);
-  } else {
-    console.warn(`The command at ${filePath} is missing a required "data" or "execute" property.`);
-  }
+	const filePath = path.join(commandsPath, file);
+	const command = require(filePath);
+	if ('data' in command && 'execute' in command) {
+		client.commands.set(command.data.name, command);
+	} else {
+		console.warn(`The command at ${filePath} is missing a required "data" or "execute" property.`);
+	}
 }
 
 // Once client is ready, run this code once
 client.once(Events.ClientReady, c => {
-  console.log(`Logged in as ${c.user.tag}`);
+	console.log(`Logged in as ${c.user.tag}`);
 });
 
 // On interactions (slash commands are interactions), execute it
 client.on(Events.InteractionCreate, async interaction => {
-  if (!interaction.isChatInputCommand()) return;
+	if (!interaction.isChatInputCommand()) return;
 
-  const command = interaction.client.commands.get(interaction.commandName);
+	const command = interaction.client.commands.get(interaction.commandName);
 
-  if (!command) {
-    console.error(`No command matching ${interaction.commmandName} was found.`);
-    return;
-  }
-  queueHandler.init(interaction);
-  await command.execute(interaction, queueHandler);
+	if (!command) {
+		console.error(`No command matching ${interaction.commmandName} was found.`);
+		return;
+	}
+
+	// Initialize the queueHandler
+	const retCode = queueHandler.init(interaction);
+
+	// redCode will be false if the queueHandler fails to initialize
+	if (retCode) {
+		await command.execute(interaction, queueHandler);
+	}
 });
 
 // Log into Discord with the bot's token

@@ -7,26 +7,23 @@ Planned commands (✅: Done, 🟨: WIP, 🟥: Not started)
 
 ✅/skip
 - skips the current song and moves to the next one in the queue
-- 🟥figure out behavior if looping (song and/or queue) is turned on
 
 ✅/queue
 - prints the current song queue to chat
 
 ✅/clear
 - clears out the queue
--🟥Currently crashes the bot by firing the player.on(AudioPlayerStatus.Idle) event but empties the queue after the empty check is done
 
 ✅/shuffle
 - randomizes the order of the current queue
 
 ✅/loop
 - CLAs:
-    - 🟨song (loop just the one song)
-    - 🟨queue (loop the entire queue)
-    - TODO: If both song loop and queue loop are on, don't loop queue as it will just keep adding the looping song to the end of the queue
+    - ✅song (loop just the one song)
+    - ✅queue (loop the entire queue)
 
-🟥/help
-- Lists all commands and their options
+🟨/status
+- Displays currently playing song, as well as if looping song and/or queue
 
 🟥/customPlaylist
 - Extra credit command, do this once everything else is done
@@ -36,6 +33,9 @@ Other features that aren't commands
 ✅Handle playlists
 - 🟥handle just a raw playlist link without a first video
 
+✅Remove easter egg and move media library to the bot's folder
+
 🟥If bot is the only one in a voice channel, disconnect and ?clear the queue?
+- Maybe disconnect and /pause immediately and send a message that queue will be cleared in X minutes unless someone reconnects and runs /unpause
 
 🟥Pretty up text responses (https://support.discord.com/hc/en-us/articles/210298617-Markdown-Text-101-Chat-Formatting-Bold-Italic-Underline-)

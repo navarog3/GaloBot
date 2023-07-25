@@ -5,7 +5,7 @@ const fs = require('fs');
 
 var isInit = false;
 const player = createAudioPlayer();
-const musicStore = 'M:\\GaloBot Store\\';
+const musicStore = 'media/';
 
 // Handles the song queue
 module.exports = class QueueHandler {
@@ -14,7 +14,7 @@ module.exports = class QueueHandler {
     // Initializes the QueueHandler object, setting important information
     init(interaction) {
         // If already initialized, no need to initialize again
-        if (isInit) { return; }
+        if (isInit) { return true; }
 
         // Initialize variables
         this.songQueue = [];
@@ -25,7 +25,7 @@ module.exports = class QueueHandler {
         const voiceChannel = interaction.member.voice.channel;
         if (!voiceChannel) {
             interaction.reply('You need to be in a voice channel to play music');
-            return;
+            return false;
         }
 
         // Join the voice channel and save connection to queue object
@@ -44,7 +44,8 @@ module.exports = class QueueHandler {
         // Note: this event WILL trigger when using player.stop() so be wary of using that method
         player.on(AudioPlayerStatus.Idle, () => {
             // If queue looping is on, take the song just played and stick it to the end of the queue
-            if (this.loop_queue) {
+            // !this.loop_song prevents song duplication when both loop types are on at the same time
+            if (this.loop_queue && !this.loop_song) {
                 this.songQueue.push(this.songQueue[0]);
             }
 
@@ -60,6 +61,7 @@ module.exports = class QueueHandler {
         });
 
         isInit = true;
+        return true;
     }
 
     /* ========== COMMANDS ========== */
@@ -160,7 +162,7 @@ module.exports = class QueueHandler {
         }
     }
 
-    // Prints the current queue to chat
+    // Prints the current queue to chat, basically songQueue.toString()
     queue(interaction) {
         var songList = '';
 
@@ -225,6 +227,11 @@ module.exports = class QueueHandler {
 
             this.loop_queue ? interaction.reply('Looping entire queue') : interaction.reply('No longer looping queue');
         }
+    }
+
+    // Prints the current status of the bot
+    status(interaction) {
+        interaction.reply('Now playing: <' + this.songQueue[0].rawUrl + '>\nLoop song: ' + this.loop_song + '\nLoop queue: ' + this.loop_queue);
     }
 
     /* ========== UTILITIES ========== */
