@@ -1,7 +1,7 @@
 {
   "name": "GaloBot",
   "version": "1.0.0",
-  "description": "A Discord bot designed to enhance the Vexera bot's music playing capabilities",
+  "description": "A Discord bot to play music, since those have all been dying off ",
   "main": "bot.js",
   "author": "navarog3",
   "type": "commonjs",

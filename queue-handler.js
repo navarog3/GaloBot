@@ -231,7 +231,11 @@ module.exports = class QueueHandler {
 
     // Prints the current status of the bot
     status(interaction) {
-        interaction.reply('Now playing: <' + this.songQueue[0].rawUrl + '>\nLoop song: ' + this.loop_song + '\nLoop queue: ' + this.loop_queue);
+        if (this.songQueue[0] != null) {
+            interaction.reply('Now playing: <' + this.songQueue[0].rawUrl + '>\nLoop song: ' + this.loop_song + '\nLoop queue: ' + this.loop_queue);
+        } else {
+            interaction.reply('Nothing is playing\nLoop song: ' + this.loop_song + '\nLoop queue: ' + this.loop_queue);
+        }
     }
 
     /* ========== UTILITIES ========== */

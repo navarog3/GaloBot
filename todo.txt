@@ -22,12 +22,13 @@ Planned commands (✅: Done, 🟨: WIP, 🟥: Not started)
     - ✅song (loop just the one song)
     - ✅queue (loop the entire queue)
 
-🟨/status
+✅/status
 - Displays currently playing song, as well as if looping song and/or queue
 
 🟥/customPlaylist
 - Extra credit command, do this once everything else is done
-- Break into two commands. One saves the current queue as a playlist, second takes the name of a saved playlist and loads it into the queue
+- Break into two commands. One saves the current queue as a playlist, second takes the name
+  of a saved playlist and loads it into the queue
 
 Other features that aren't commands
 ✅Handle playlists
@@ -36,6 +37,7 @@ Other features that aren't commands
 ✅Remove easter egg and move media library to the bot's folder
 
 🟥If bot is the only one in a voice channel, disconnect and ?clear the queue?
-- Maybe disconnect and /pause immediately and send a message that queue will be cleared in X minutes unless someone reconnects and runs /unpause
+- Maybe disconnect and /pause immediately and send a message that queue will be cleared in X
+  minutes unless someone reconnects and runs /unpause
 
 🟥Pretty up text responses (https://support.discord.com/hc/en-us/articles/210298617-Markdown-Text-101-Chat-Formatting-Bold-Italic-Underline-)
