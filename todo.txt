@@ -36,8 +36,15 @@ Other features that aren't commands
 
 ✅Remove easter egg and move media library to the bot's folder
 
+🟥Add custom message when trying to fetch an age-restricted video (error 410)
+
+🟥Make skip to some place in the queue a thing
+
 🟥If bot is the only one in a voice channel, disconnect and ?clear the queue?
 - Maybe disconnect and /pause immediately and send a message that queue will be cleared in X
   minutes unless someone reconnects and runs /unpause
+🟥If song fails to download and creates an empty file, that song can't be played any more - try/catch to delete file if failure?
+
+🟥If response to Discord is longer than 2000 characters, it errors - limit /queue to like 20 songs or something, and show total count
 
 🟥Pretty up text responses (https://support.discord.com/hc/en-us/articles/210298617-Markdown-Text-101-Chat-Formatting-Bold-Italic-Underline-)

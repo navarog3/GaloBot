@@ -5,6 +5,7 @@ This is a Discord bot build in Javascript using DiscordJs. It is just intended t
 Known Bugs:
 - /status can crash the bot by running the player.on status == idle event with an empty queue but tries to play a song despite the if check
     - This only has happened once and I've been unable to reproduce it yet
+- Bot can't play age-restricted videos on YouTube due to not being able to sign in. As far as I know, this is unsolveable
 
 Command List:
 - /play : Given a YouTube song link or playlist link, play that song or playlist
