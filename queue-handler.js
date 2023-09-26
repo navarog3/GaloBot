@@ -73,7 +73,7 @@ module.exports = class QueueHandler {
         var playlistId = '';
         const rawUrl = interaction.options.getString('url').trim();
         const loop = interaction.options.getBoolean('loop');
-        const shuffle = interaction.options.getBoolean('shuffle');        
+        const shuffle = interaction.options.getBoolean('shuffle');
 
         // Defer the reply because without it the bot only gets 3 seconds to respond
         await interaction.deferReply();
@@ -86,7 +86,7 @@ module.exports = class QueueHandler {
                 interaction.reply('Sorry, I couldn\'t find the playlist "' + rawUrl + '"\nPlease make sure it is a valid YouTube URL');
                 return;
             }
-            
+
             // This is an expensive operation, a large playlist will take a while
             this.fetchPlaylist(playlistId, (playlistInfo) => {
                 // Shuffle if user asked for it
@@ -113,7 +113,7 @@ module.exports = class QueueHandler {
                 id: id,
                 filePath: musicStore + id + '.webm'
             };
-            
+
             this.fetchSong(song, (songInfo) => {
                 // Shuffle if user asked for it
                 if (shuffle) {
@@ -153,15 +153,29 @@ module.exports = class QueueHandler {
         }
     }
 
-    // Skips the current song
+    // Skips the current song, or to a position in queue if specified
     skip(interaction) {
+        // "position" is a user-defined integer
+        const pos = interaction.options.getInteger('position');
+
         if (player.state.status != 'idle') {
             player.pause();
-            this.songQueue.shift();
-            if (this.songQueue.length != 0) {
-                player.play(createAudioResource(this.songQueue[0].filePath));
+            if (pos == 0 || pos == null) {
+                this.songQueue.shift();
+                if (this.songQueue.length != 0) {
+                    player.play(createAudioResource(this.songQueue[0].filePath));
+                }
+                interaction.reply('Skipped the current song');
+            } else {
+                if (this.songQueue.length != 0) {
+                    // Remove all songs before the desired position
+                    this.songQueue.splice(0, pos);
+
+                    // Play the desired song
+                    player.play(createAudioResource(this.songQueue[0].filePath));
+                }
+                interaction.reply('Skipped to queue position ' + pos);
             }
-            interaction.reply('Skipped the current song');
         } else {
             interaction.reply('Nothing is playing');
         }
@@ -169,18 +183,37 @@ module.exports = class QueueHandler {
 
     // Prints the current queue to chat, basically songQueue.toString()
     queue(interaction) {
-        var songList = '';
+        var responseString = '';
+        // Discord limits the size of reponses to 2000 characters, so limit the song list to be printed
+        const SONG_LIMIT = 5;
+
+        if (this.songQueue[0] != null) {
+            responseString += 'Loop song: ' + this.loop_song + ' | Loop queue: ' + this.loop_queue;
+        } else {
+            responseString += 'Queue is empty! Use /play to add something';
+        }
 
         for (let i = 0; i < this.songQueue.length; i++) {
             if (i == 0) {
-                songList = ('Now playing: <' + this.songQueue[i].rawUrl + '>\n');
+                responseString += ('\nNow playing: <' + this.songQueue[i].rawUrl + '>\n');
             } else {
-                songList += (i + ': <' + this.songQueue[i].rawUrl + '>\n');
+                responseString += (i + ': <' + this.songQueue[i].rawUrl + '>\n');
+            }
+
+            // Limit response via SONG_LIMIT
+            if (i == SONG_LIMIT && this.songQueue.length > (SONG_LIMIT + 1)) {
+                const remSongs = this.songQueue.length - i - 1;
+
+                responseString += 'Queue contains an additional '
+
+                // Respect plurals
+                responseString += remSongs == 1 ? 'song' : remSongs + ' songs'
+                break;
             }
         }
 
-        // Print out the queue, stripping the trailing newline off
-        interaction.reply(songList == '' ? 'Queue is empty! Use /play to add something' : songList.slice(0, -1));
+        // Print out the queue, stripping the trailing newline off using regex
+        interaction.reply(responseString == '' ? 'Queue is empty! Use /play to add something' : responseString.replace(/\n$/, ''));
     }
 
     // Empties the queue
@@ -197,8 +230,8 @@ module.exports = class QueueHandler {
         player.stop();
 
         // Uses the Durstenfeld shuffle algorithm (https://en.wikipedia.org/wiki/Fisher%E2%80%93Yates_shuffle#The_modern_algorithm)
-        for (var i = queueState.length - 1; i > 0; i--) {
-            var j = Math.floor(Math.random() * (i + 1));
+        for (let i = queueState.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
             [queueState[i], queueState[j]] = [queueState[j], queueState[i]];
 
             /* The above line does this but in only 1 line, thanks to double assignment
@@ -220,7 +253,7 @@ module.exports = class QueueHandler {
     // Loops the song or entire queue, based on user's choice
     loop(interaction) {
         // "type" can have the following values: 'loop_song', 'loop_queue'
-        var type = interaction.options.getString('type');
+        const type = interaction.options.getString('type');
 
         // Set the global loop options
         if (type == 'loop_song') {
@@ -231,15 +264,6 @@ module.exports = class QueueHandler {
             this.loop_queue = !this.loop_queue;
 
             this.loop_queue ? interaction.reply('Looping entire queue') : interaction.reply('No longer looping queue');
-        }
-    }
-
-    // Prints the current status of the bot
-    status(interaction) {
-        if (this.songQueue[0] != null) {
-            interaction.reply('Now playing: <' + this.songQueue[0].rawUrl + '>\nLoop song: ' + this.loop_song + '\nLoop queue: ' + this.loop_queue);
-        } else {
-            interaction.reply('Nothing is playing\nLoop song: ' + this.loop_song + '\nLoop queue: ' + this.loop_queue);
         }
     }
 
@@ -267,12 +291,12 @@ module.exports = class QueueHandler {
                     quality: 'highestaudio'
                 }).pipe(fs.createWriteStream(song.filePath)).on('finish', () => {
                     this.enqueue(song, false);
-                    callback(); // TODO: Add songinfo like in fetchPlaylist
+                    callback();
                 });
             } else {
                 // File is on disk, no need to download
                 this.enqueue(song, false);
-                callback(); // TODO: Add songinfo like in fetchPlaylist
+                callback();
             }
         });
     }
