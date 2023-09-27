@@ -44,11 +44,8 @@ client.on(Events.InteractionCreate, async interaction => {
 		return;
 	}
 
-	// Initialize the queueHandler
-	const retCode = queueHandler.init(interaction);
-
-	// retCode will be false if the queueHandler fails to initialize
-	if (retCode) {
+	// Try to initialize the queueHandler (will return boolean based on if it's initialized or not)
+	if (queueHandler.init(interaction)) {
 		await command.execute(interaction, queueHandler);
 	}
 });

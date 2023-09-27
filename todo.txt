@@ -50,6 +50,6 @@ Other features that aren't commands
 
 🟥If song fails to download and creates an empty file, that song can't be played any more - try/catch to delete file if failure?
 
-🟥When bot leaves VC, forget which VC it's in
+✅When bot leaves VC, forget which VC it's in
 
 ✅If response to Discord is longer than 2000 characters, it errors - limit /queue to like 20 songs or something, and show total count

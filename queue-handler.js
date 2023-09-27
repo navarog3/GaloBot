@@ -40,6 +40,18 @@ module.exports = class QueueHandler {
             connection.subscribe(player);
         });
 
+        // Check every 30 seconds to see if it's the last user in the voice channel. If it is, leave
+        setInterval(() => {
+            if (voiceChannel) {
+                const memberCount = voiceChannel.members.size;
+                if (memberCount == 1) {
+                    player.stop();
+                    connection.disconnect();
+                    isInit = false;
+                }
+            }
+        }, 30000);
+
         // Auto-advances the queue when a song finishes
         // Note: this event WILL trigger when using player.stop() so be wary of using that method
         player.on(AudioPlayerStatus.Idle, () => {
