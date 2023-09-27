@@ -42,7 +42,7 @@ Other features that aren't commands
 - Prelimimary look makes this seem quite difficult, since error happens in a callback so can't try-catch it
 - Tried adding cookies but didn't seem to work
 
-🟨Make skip to some place in the queue a thing
+✅Make skip to some place in the queue a thing
 
 🟥Check every X seconds to see if it's the only one in the VC. If it is:
 - Send a message to the last text channel an interaction was sent from "No users left in VC, disconnecting in 30 seconds"

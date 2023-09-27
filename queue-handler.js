@@ -155,26 +155,22 @@ module.exports = class QueueHandler {
 
     // Skips the current song, or to a position in queue if specified
     skip(interaction) {
-        // "position" is a user-defined integer
-        const pos = interaction.options.getInteger('position');
+        // "position" is a user-defined integer. Set it to 0 if they don't set it
+        const pos = interaction.options.getInteger('position') == null ? 0 : interaction.options.getInteger('position');
 
         if (player.state.status != 'idle') {
             player.pause();
-            if (pos == 0 || pos == null) {
-                this.songQueue.shift();
-                if (this.songQueue.length != 0) {
-                    player.play(createAudioResource(this.songQueue[0].filePath));
-                }
-                interaction.reply('Skipped the current song');
-            } else {
-                if (this.songQueue.length != 0) {
-                    // Remove all songs before the desired position
-                    this.songQueue.splice(0, pos);
+            if (this.songQueue.length != 0) {
+                // Remove all songs before the desired position
+                this.songQueue.splice(0, pos);
 
-                    // Play the desired song
+                // Play the desired song
+                if (this.songQueue.length > 0) {
                     player.play(createAudioResource(this.songQueue[0].filePath));
+                    interaction.reply(pos == 0 ? 'Skipped the current song' : ('Skipped to queue position ' + pos));
+                } else {
+                    interaction.reply('Queue cleared');
                 }
-                interaction.reply('Skipped to queue position ' + pos);
             }
         } else {
             interaction.reply('Nothing is playing');
