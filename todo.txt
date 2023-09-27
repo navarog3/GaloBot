@@ -1,4 +1,8 @@
-Planned commands (✅: Done, 🟨: WIP, 🟥: Not started)
+(✅: Done, 🟨: WIP, 🟥: Not started)
+
+
+## Commands
+
 ✅/play
 - accepts a song, plays from the store if it's downloaded, else download it
 - CLAs:
@@ -26,11 +30,12 @@ Planned commands (✅: Done, 🟨: WIP, 🟥: Not started)
 - Displays currently playing song, as well as if looping song and/or queue
 
 🟥/customPlaylist
-- Extra credit command, do this once everything else is done
 - Break into two commands. One saves the current queue as a playlist, second takes the name
   of a saved playlist and loads it into the queue
 
-Other features that aren't commands
+
+## Other features that aren't commands
+
 ✅Handle playlists
 - ✅handle just a raw playlist link without a first video
 
@@ -38,18 +43,16 @@ Other features that aren't commands
 
 ✅Remove /status and add looping info to /queue
 
+✅Make skip to some place in the queue a thing
+
+✅Check every X seconds to see if it's the only one in the VC. If it is, disconnect
+
+✅If response to Discord is longer than 2000 characters, it errors - limit /queue to like 20 songs or something, and show total count
+
 🟥Add custom message when trying to fetch an age-restricted video (error 410)
 - Prelimimary look makes this seem quite difficult, since error happens in a callback so can't try-catch it
 - Tried adding cookies but didn't seem to work
 
-✅Make skip to some place in the queue a thing
-
-🟥Check every X seconds to see if it's the only one in the VC. If it is:
-- Send a message to the last text channel an interaction was sent from "No users left in VC, disconnecting in 30 seconds"
-- Wait 30 seconds and then clear queue and disconnect itself
-
-🟥If song fails to download and creates an empty file, that song can't be played any more - try/catch to delete file if failure?
-
-✅When bot leaves VC, forget which VC it's in
-
-✅If response to Discord is longer than 2000 characters, it errors - limit /queue to like 20 songs or something, and show total count
+🟥If song fails to download and creates an empty file, that song can't be played any more
+- Try/catch to delete file if failure?
+- Check file size before playing a song, if too small skip
