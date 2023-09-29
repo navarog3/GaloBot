@@ -126,7 +126,7 @@ module.exports = class QueueHandler {
                 filePath: musicStore + id + '.webm'
             };
 
-            this.fetchSong(song, (songInfo) => {
+            const retCode = this.fetchSong(song, (songInfo) => {
                 // Shuffle if user asked for it
                 if (shuffle) {
                     this.shuffle();
@@ -142,6 +142,11 @@ module.exports = class QueueHandler {
                     interaction.editReply('Now playing <' + song.rawUrl + '>');
                 }
             });
+
+            if (retCode == 410) {
+                // Error 410 means that the requested song is age-restricted and thus can't be played
+                interaction.editReply('That song is age-restricted and can\'t be played');
+            }
         }
     }
 
@@ -294,10 +299,12 @@ module.exports = class QueueHandler {
         fs.access(song.filePath, fs.constants.F_OK, (err) => {
             if (err) {
                 // File isn't on disk, need to download
-                ytdl(song.rawUrl, {
-                    filter: 'audioonly',
-                    quality: 'highestaudio'
-                }).pipe(fs.createWriteStream(song.filePath)).on('finish', () => {
+                const stream = ytdl(song.rawUrl, { filter: 'audioonly', quality: 'highestaudio' }).on('error', (error) => {
+                    return error.statusCode;
+                });
+
+                // Pipe the downloaded stream into a file
+                stream.pipe(fs.createWriteStream(song.filePath)).on('finish', () => {
                     this.enqueue(song, false);
                     callback();
                 });
@@ -351,10 +358,12 @@ module.exports = class QueueHandler {
             fs.access(song.filePath, fs.constants.F_OK, (err) => {
                 if (err) {
                     // File isn't on disk, need to download
-                    ytdl(song.rawUrl, {
-                        filter: 'audioonly',
-                        quality: 'highestaudio'
-                    }).pipe(fs.createWriteStream(song.filePath)).on('finish', () => {
+                    const stream = ytdl(song.rawUrl, { filter: 'audioonly', quality: 'highestaudio' }).on('error', (error) => {
+                        return error.statusCode;
+                    });
+
+                    // Pipe the downloaded stream into a file
+                    stream.pipe(fs.createWriteStream(song.filePath)).on('finish', () => {
                         tempQueue.push(song);
                         // If the lengths match, every song to add has been added so populate the real queue
                         if (tempQueue.length == items.length) {
