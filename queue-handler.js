@@ -101,12 +101,22 @@ module.exports = class QueueHandler {
                     }
                     // Reply to the interaction
                     interaction.editReply('Playlist processed, added ' + playlistInfo.length + ' songs to the queue');
-                } else if (errCode == 410) {
-                    // Error 410 means that the requested song is age-restricted and thus can't be played
-                    interaction.editReply('That song is age-restricted and can\'t be played');
+
                 } else {
-                    // Unhandled error, notify user
-                    interaction.editReply('You found an unhandled error! Please let the developer know so that he can fix it');
+                    // Need to clean up the corrupted file that was generated
+                    fs.unlink(__dirname + '/' + song.filePath, (err) => {
+                        // Based on error code, inform user
+                        switch (errCode) {
+                            case 410:
+                                // Error 410 means that the requested song is age-restricted
+                                interaction.editReply('At least one of the songs in your playlist is age-restricted and can\'t be played');
+                                break;
+
+                            default:
+                                interaction.editReply('You found an unhandled error! Let my developer know so that he can fix it');
+                                break;
+                        }
+                    });
                 }
             });
         } else {
@@ -138,21 +148,19 @@ module.exports = class QueueHandler {
 
                 } else {
                     // Need to clean up the corrupted file that was generated
-                    fs.unlink(__dirname  + '/' + song.filePath, (err) => {
-                        if (err) { console.log(err) };
+                    fs.unlink(__dirname + '/' + song.filePath, (err) => {
+                        // Based on error code, inform user
+                        switch (errCode) {
+                            case 410:
+                                // Error 410 means that the requested song is age-restricted
+                                interaction.editReply('That song has been age-restricted by YouTube and can\'t be played');
+                                break;
+
+                            default:
+                                interaction.editReply('You found an unhandled error! Let my developer know so that he can fix it');
+                                break;
+                        }
                     });
-
-                    // Based on error code, inform user
-                    switch (errCode) {
-                        case 410:
-                            // Error 410 means that the requested song is age-restricted
-                            interaction.editReply('That song is age-restricted and can\'t be played');
-                            break;
-
-                        default:
-                            interaction.editReply('You found an unhandled error! Let my developer know so that he can fix it');
-                            break;
-                    }
                 }
             });
         }
@@ -300,29 +308,26 @@ module.exports = class QueueHandler {
 
     // If the song already exists on disk, grab that file. Else, download from YouTube
     async fetchSong(song, callback) {
-        var inError = false;
+        var songInfo;
+        try {
+            songInfo = await ytdl.getInfo(song.rawUrl, { filter: 'audioonly', quality: 'highestaudio' });
+        } catch (error) {
+            callback(null, error.statusCode);
+            return;
+        }
 
         fs.access(song.filePath, fs.constants.F_OK, (err) => {
             if (err) {
                 // File isn't on disk, need to download
-                const stream = ytdl(song.rawUrl, { filter: 'audioonly', quality: 'highestaudio' }).on('error', (error) => {
-                    inError = true;
-                    callback(null, error.statusCode);
+                // Pipe the downloaded stream into a file
+                ytdl.downloadFromInfo(songInfo).pipe(fs.createWriteStream(song.filePath)).on('finish', () => {
+                    this.enqueue(song, false);
+                    callback({ title: songInfo.videoDetails.title, author: songInfo.videoDetails.ownerChannelName }, null);
                 });
-
-                if (!inError) {
-                    // Pipe the downloaded stream into a file
-                    stream.pipe(fs.createWriteStream(song.filePath)).on('finish', () => {
-                        this.enqueue(song, false);
-                        //callback({ title: song.title, author: song.author }, null);
-                        callback(null, null);
-                    });
-                }
             } else {
                 // File is on disk, no need to download
                 this.enqueue(song, false);
-                //callback({ title: song.title, author: song.author }, null);
-                callback(null, null);
+                callback({ title: songInfo.videoDetails.title, author: songInfo.videoDetails.ownerChannelName }, null);
             }
         });
     }
@@ -353,7 +358,6 @@ module.exports = class QueueHandler {
         const playlist = await ytpl(playlistId);
         const items = playlist.items;
         var tempQueue = [];
-        var inError = false;
 
         for (let i = 0; i < items.length; i++) {
             // First, build the song object
@@ -371,23 +375,19 @@ module.exports = class QueueHandler {
                 if (err) {
                     // File isn't on disk, need to download
                     const stream = ytdl(song.rawUrl, { filter: 'audioonly', quality: 'highestaudio' }).on('error', (error) => {
-                        inError = true;
                         callback(null, error.statusCode);
                     });
-
-                    if (!inError) {
-                        // Pipe the downloaded stream into a file
-                        stream.pipe(fs.createWriteStream(song.filePath)).on('finish', () => {
-                            tempQueue.push(song);
-                            // If the lengths match, every song to add has been added so populate the real queue
-                            if (tempQueue.length == items.length) {
-                                // items is in the correct order, tempQueue isn't necessarily
-                                this.enqueuePlaylist(items, tempQueue);
-                                // Return useful info
-                                callback({ length: items.length, title: playlist.title, author: playlist.author }, null);
-                            }
-                        });
-                    }
+                    // Pipe the downloaded stream into a file
+                    stream.pipe(fs.createWriteStream(song.filePath)).on('finish', () => {
+                        tempQueue.push(song);
+                        // If the lengths match, every song to add has been added so populate the real queue
+                        if (tempQueue.length == items.length) {
+                            // items is in the correct order, tempQueue isn't necessarily
+                            this.enqueuePlaylist(items, tempQueue);
+                            // Return useful info
+                            callback({ length: items.length, title: playlist.title, author: playlist.author }, null);
+                        }
+                    });
                 } else {
                     // File is on disk, no need to download
                     tempQueue.push(song);
