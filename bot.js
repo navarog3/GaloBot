@@ -50,5 +50,15 @@ client.on(Events.InteractionCreate, async interaction => {
 	}
 });
 
+// Whenever someone leaves the voice channel, check if it's the last member. If so, leave the voice channel
+client.on(Events.VoiceStateUpdate, (oldState, newState) => {
+	if (oldState.channel) {
+		if (oldState.channel.members.size == 1) {
+			// User left channel and bot is last member of voice channel
+			queueHandler.disconnect();
+		}
+	}
+});
+
 // Log into Discord with the bot's token
 client.login(token);

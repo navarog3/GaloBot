@@ -4,9 +4,9 @@ const ytpl = require('ytpl');
 const fs = require('fs');
 
 var isInit = false;
+var connection;
 const player = createAudioPlayer();
 const musicStore = 'media/';
-const DISCONNECT_DELAY = 10000;
 
 // Handles the song queue
 module.exports = class QueueHandler {
@@ -30,7 +30,7 @@ module.exports = class QueueHandler {
         }
 
         // Join the voice channel and save connection to queue object
-        const connection = joinVoiceChannel({
+        connection = joinVoiceChannel({
             channelId: voiceChannel.id,
             guildId: voiceChannel.guild.id,
             adapterCreator: voiceChannel.guild.voiceAdapterCreator
@@ -40,18 +40,6 @@ module.exports = class QueueHandler {
         connection.on(VoiceConnectionStatus.Ready, (oldState, newState) => {
             connection.subscribe(player);
         });
-
-        // If it's the only user in the voice channel, disconnect
-        setInterval(() => {
-            if (voiceChannel) {
-                const memberCount = voiceChannel.members.size;
-                if (memberCount == 1) {
-                    player.stop();
-                    connection.disconnect();
-                    isInit = false;
-                }
-            }
-        }, DISCONNECT_DELAY);
 
         // Auto-advances the queue when a song finishes
         // Note: this event WILL trigger when using player.stop() so be wary of using that method
@@ -70,13 +58,6 @@ module.exports = class QueueHandler {
             // If the queue isn't empty, play the next song
             if (this.songQueue.length != 0) {
                 this.enqueue(this.songQueue[0], true);
-            } else {
-                // When queue is empty, disconnect from the voice channel after a delay
-                setInterval(() => {
-                    player.stop();
-                    connection.disconnect();
-                    isInit = false;
-                }, DISCONNECT_DELAY);
             }
         });
 
@@ -125,7 +106,7 @@ module.exports = class QueueHandler {
                     interaction.editReply('That song is age-restricted and can\'t be played');
                 } else {
                     // Unhandled error, notify user
-                    interaction.editReply('You found an unhandled error! Let  know so that he can fix it');
+                    interaction.editReply('You found an unhandled error! Please let the developer know so that he can fix it');
                 }
             });
         } else {
@@ -153,11 +134,8 @@ module.exports = class QueueHandler {
                         this.loop_song = true;
                     }
                     // Reply to the interaction
-                    if (this.songQueue.length != 0) {
-                        interaction.editReply('Added <' + song.rawUrl + '> to the queue in position ' + this.songQueue.length);
-                    } else {
-                        interaction.editReply('Now playing <' + song.rawUrl + '>');
-                    }
+                    interaction.editReply('Added <' + song.rawUrl + '> to the queue in position ' + this.songQueue.length);
+
                 } else if (errCode == 410) {
                     // Error 410 means that the requested song is age-restricted
                     interaction.editReply('That song is age-restricted and can\'t be played');
@@ -204,13 +182,6 @@ module.exports = class QueueHandler {
                     player.play(createAudioResource(this.songQueue[0].filePath));
                     interaction.reply(pos == 0 ? 'Skipped the current song' : ('Skipped to queue position ' + pos));
                 } else {
-                    // If skipping last song in the queue, disconnect from the voice channel after a delay
-                    setInterval(() => {
-                        player.stop();
-                        connection.disconnect();
-                        isInit = false;
-                    }, DISCONNECT_DELAY);
-
                     interaction.reply('Queue cleared');
                 }
             }
@@ -310,7 +281,7 @@ module.exports = class QueueHandler {
         }
 
         // Push the song to the queue and play it if there's no song currently playing
-        if (player.state.status == 'idle') {
+        if (player.state.status != 'playing') {
             player.play(createAudioResource(song.filePath));
         }
     }
@@ -360,7 +331,7 @@ module.exports = class QueueHandler {
         this.songQueue = this.songQueue.concat(returnOrder);
 
         // songQueue has been populated, play the queue if something's not already playing
-        if (player.state.status == 'idle') {
+        if (player.state.status != 'playing') {
             player.play(createAudioResource(this.songQueue[0].filePath));
         }
     }
@@ -417,6 +388,16 @@ module.exports = class QueueHandler {
                     }
                 }
             });
+        }
+    }
+
+    // To be run when the bot disconnects
+    disconnect() {
+        this.songQueue = [];
+        player.stop();
+        isInit = false;
+        if (connection) {
+            connection.disconnect();
         }
     }
 };
