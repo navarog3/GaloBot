@@ -4,6 +4,7 @@ This is a Discord bot build in Javascript using DiscordJs. It is just intended t
 
 Known Bugs:
 - If the bot errors while downloading a song, it leaves a corrupted file behind that must be manually removed before the bot can play that song
+- Sometimes when playing the first song after entering a voice channel, the bot won't play it. Subsequent requests work just fine
 
 Command List:
 - /play : Given a YouTube song link or playlist link, play that song or playlist
