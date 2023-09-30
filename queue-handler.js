@@ -136,11 +136,23 @@ module.exports = class QueueHandler {
                     // Reply to the interaction
                     interaction.editReply('Added <' + song.rawUrl + '> to the queue in position ' + this.songQueue.length);
 
-                } else if (errCode == 410) {
-                    // Error 410 means that the requested song is age-restricted
-                    interaction.editReply('That song is age-restricted and can\'t be played');
                 } else {
-                    interaction.editReply('You found an unhandled error! Let my developer know so that he can fix it');
+                    // Need to clean up the corrupted file that was generated
+                    fs.unlink(__dirname  + '/' + song.filePath, (err) => {
+                        if (err) { console.log(err) };
+                    });
+
+                    // Based on error code, inform user
+                    switch (errCode) {
+                        case 410:
+                            // Error 410 means that the requested song is age-restricted
+                            interaction.editReply('That song is age-restricted and can\'t be played');
+                            break;
+
+                        default:
+                            interaction.editReply('You found an unhandled error! Let my developer know so that he can fix it');
+                            break;
+                    }
                 }
             });
         }

@@ -55,6 +55,6 @@
 - Tried adding cookies but didn't seem to work
 - Solution was to just get fancy with the error handling
 
-🟥If song fails to download and creates an empty file, that song can't be played any more
+🟨If song fails to download and creates an empty file, that song can't be played any more
 - Try/catch to delete file if failure?
 - Check file size before playing a song, if too small skip
