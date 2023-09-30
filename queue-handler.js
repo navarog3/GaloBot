@@ -6,6 +6,7 @@ const fs = require('fs');
 var isInit = false;
 const player = createAudioPlayer();
 const musicStore = 'media/';
+const DISCONNECT_DELAY = 10000;
 
 // Handles the song queue
 module.exports = class QueueHandler {
@@ -40,7 +41,7 @@ module.exports = class QueueHandler {
             connection.subscribe(player);
         });
 
-        // Check every 30 seconds to see if it's the last user in the voice channel. If it is, leave
+        // If it's the only user in the voice channel, disconnect
         setInterval(() => {
             if (voiceChannel) {
                 const memberCount = voiceChannel.members.size;
@@ -50,7 +51,7 @@ module.exports = class QueueHandler {
                     isInit = false;
                 }
             }
-        }, 30000);
+        }, DISCONNECT_DELAY);
 
         // Auto-advances the queue when a song finishes
         // Note: this event WILL trigger when using player.stop() so be wary of using that method
@@ -69,6 +70,13 @@ module.exports = class QueueHandler {
             // If the queue isn't empty, play the next song
             if (this.songQueue.length != 0) {
                 this.enqueue(this.songQueue[0], true);
+            } else {
+                // When queue is empty, disconnect from the voice channel after a delay
+                setInterval(() => {
+                    player.stop();
+                    connection.disconnect();
+                    isInit = false;
+                }, DISCONNECT_DELAY);
             }
         });
 
@@ -100,17 +108,25 @@ module.exports = class QueueHandler {
             }
 
             // This is an expensive operation, a large playlist will take a while
-            this.fetchPlaylist(playlistId, (playlistInfo) => {
-                // Shuffle if user asked for it
-                if (shuffle) {
-                    this.shuffle();
+            this.fetchPlaylist(playlistId, (playlistInfo, errCode) => {
+                if (!errCode) {
+                    // Shuffle if user asked for it
+                    if (shuffle) {
+                        this.shuffle();
+                    }
+                    // Loop if user asked for it
+                    if (loop) {
+                        this.loop_queue = true;
+                    }
+                    // Reply to the interaction
+                    interaction.editReply('Playlist processed, added ' + playlistInfo.length + ' songs to the queue');
+                } else if (errCode == 410) {
+                    // Error 410 means that the requested song is age-restricted and thus can't be played
+                    interaction.editReply('That song is age-restricted and can\'t be played');
+                } else {
+                    // Unhandled error, notify user
+                    interaction.editReply('You found an unhandled error! Let  know so that he can fix it');
                 }
-                // Loop if user asked for it
-                if (loop) {
-                    this.loop_queue = true;
-                }
-                // Reply to the interaction
-                interaction.editReply('Playlist processed, added ' + playlistInfo.length + ' songs to the queue');
             });
         } else {
             // No playlist to handle, just add the song
@@ -126,27 +142,29 @@ module.exports = class QueueHandler {
                 filePath: musicStore + id + '.webm'
             };
 
-            const retCode = this.fetchSong(song, (songInfo) => {
-                // Shuffle if user asked for it
-                if (shuffle) {
-                    this.shuffle();
-                }
-                // Loop if user asked for it
-                if (loop) {
-                    this.loop_song = true;
-                }
-                // Reply to the interaction
-                if (this.songQueue.length != 0) {
-                    interaction.editReply('Added <' + song.rawUrl + '> to the queue in position ' + this.songQueue.length);
+            this.fetchSong(song, (songInfo, errCode) => {
+                if (!errCode) {
+                    // Shuffle if user asked for it
+                    if (shuffle) {
+                        this.shuffle();
+                    }
+                    // Loop if user asked for it
+                    if (loop) {
+                        this.loop_song = true;
+                    }
+                    // Reply to the interaction
+                    if (this.songQueue.length != 0) {
+                        interaction.editReply('Added <' + song.rawUrl + '> to the queue in position ' + this.songQueue.length);
+                    } else {
+                        interaction.editReply('Now playing <' + song.rawUrl + '>');
+                    }
+                } else if (errCode == 410) {
+                    // Error 410 means that the requested song is age-restricted
+                    interaction.editReply('That song is age-restricted and can\'t be played');
                 } else {
-                    interaction.editReply('Now playing <' + song.rawUrl + '>');
+                    interaction.editReply('You found an unhandled error! Let my developer know so that he can fix it');
                 }
             });
-
-            if (retCode == 410) {
-                // Error 410 means that the requested song is age-restricted and thus can't be played
-                interaction.editReply('That song is age-restricted and can\'t be played');
-            }
         }
     }
 
@@ -186,6 +204,13 @@ module.exports = class QueueHandler {
                     player.play(createAudioResource(this.songQueue[0].filePath));
                     interaction.reply(pos == 0 ? 'Skipped the current song' : ('Skipped to queue position ' + pos));
                 } else {
+                    // If skipping last song in the queue, disconnect from the voice channel after a delay
+                    setInterval(() => {
+                        player.stop();
+                        connection.disconnect();
+                        isInit = false;
+                    }, DISCONNECT_DELAY);
+
                     interaction.reply('Queue cleared');
                 }
             }
@@ -243,14 +268,10 @@ module.exports = class QueueHandler {
         player.stop();
 
         // Uses the Durstenfeld shuffle algorithm (https://en.wikipedia.org/wiki/Fisher%E2%80%93Yates_shuffle#The_modern_algorithm)
+        // Also uses double-assignment fanciness to avoid a double for loop
         for (let i = queueState.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [queueState[i], queueState[j]] = [queueState[j], queueState[i]];
-
-            /* The above line does this but in only 1 line, thanks to double assignment
-            var tmp = queueState[i];
-            queueState[i] = queueState[j];
-            queueState[j] = tmp; */
         }
 
         // Load the now-shuffled queue in and play the first song
@@ -296,22 +317,29 @@ module.exports = class QueueHandler {
 
     // If the song already exists on disk, grab that file. Else, download from YouTube
     async fetchSong(song, callback) {
+        var inError = false;
+
         fs.access(song.filePath, fs.constants.F_OK, (err) => {
             if (err) {
                 // File isn't on disk, need to download
                 const stream = ytdl(song.rawUrl, { filter: 'audioonly', quality: 'highestaudio' }).on('error', (error) => {
-                    return error.statusCode;
+                    inError = true;
+                    callback(null, error.statusCode);
                 });
 
-                // Pipe the downloaded stream into a file
-                stream.pipe(fs.createWriteStream(song.filePath)).on('finish', () => {
-                    this.enqueue(song, false);
-                    callback();
-                });
+                if (!inError) {
+                    // Pipe the downloaded stream into a file
+                    stream.pipe(fs.createWriteStream(song.filePath)).on('finish', () => {
+                        this.enqueue(song, false);
+                        //callback({ title: song.title, author: song.author }, null);
+                        callback(null, null);
+                    });
+                }
             } else {
                 // File is on disk, no need to download
                 this.enqueue(song, false);
-                callback();
+                //callback({ title: song.title, author: song.author }, null);
+                callback(null, null);
             }
         });
     }
@@ -342,6 +370,7 @@ module.exports = class QueueHandler {
         const playlist = await ytpl(playlistId);
         const items = playlist.items;
         var tempQueue = [];
+        var inError = false;
 
         for (let i = 0; i < items.length; i++) {
             // First, build the song object
@@ -359,24 +388,23 @@ module.exports = class QueueHandler {
                 if (err) {
                     // File isn't on disk, need to download
                     const stream = ytdl(song.rawUrl, { filter: 'audioonly', quality: 'highestaudio' }).on('error', (error) => {
-                        return error.statusCode;
+                        inError = true;
+                        callback(null, error.statusCode);
                     });
 
-                    // Pipe the downloaded stream into a file
-                    stream.pipe(fs.createWriteStream(song.filePath)).on('finish', () => {
-                        tempQueue.push(song);
-                        // If the lengths match, every song to add has been added so populate the real queue
-                        if (tempQueue.length == items.length) {
-                            // items is in the correct order, tempQueue isn't necessarily
-                            this.enqueuePlaylist(items, tempQueue);
-                            // Return useful info
-                            callback({
-                                length: items.length,
-                                title: playlist.title,
-                                author: playlist.author
-                            });
-                        }
-                    });
+                    if (!inError) {
+                        // Pipe the downloaded stream into a file
+                        stream.pipe(fs.createWriteStream(song.filePath)).on('finish', () => {
+                            tempQueue.push(song);
+                            // If the lengths match, every song to add has been added so populate the real queue
+                            if (tempQueue.length == items.length) {
+                                // items is in the correct order, tempQueue isn't necessarily
+                                this.enqueuePlaylist(items, tempQueue);
+                                // Return useful info
+                                callback({ length: items.length, title: playlist.title, author: playlist.author }, null);
+                            }
+                        });
+                    }
                 } else {
                     // File is on disk, no need to download
                     tempQueue.push(song);
@@ -385,11 +413,7 @@ module.exports = class QueueHandler {
                         // items is in the correct order, tempQueue isn't necessarily
                         this.enqueuePlaylist(items, tempQueue);
                         // Return useful info
-                        callback({
-                            length: items.length,
-                            title: playlist.title,
-                            author: playlist.author
-                        });
+                        callback({ length: items.length, title: playlist.title, author: playlist.author }, null);
                     }
                 }
             });

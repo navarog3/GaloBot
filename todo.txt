@@ -46,13 +46,14 @@
 ✅Make skip to some place in the queue a thing
 
 ✅Check every X seconds to see if it's the only one in the VC. If it is, disconnect
--🟥If queue is empty, wait x seconds and then disconnect
+-✅If queue is empty, wait x seconds and then disconnect
 
 ✅If response to Discord is longer than 2000 characters, it errors - limit /queue to like 20 songs or something, and show total count
 
-🟨Add custom message when trying to fetch an age-restricted video (error 410)
+✅Add custom message when trying to fetch an age-restricted video (error 410)
 - Prelimimary look makes this seem quite difficult, since error happens in a callback so can't try-catch it
 - Tried adding cookies but didn't seem to work
+- Solution was to just get fancy with the error handling
 
 🟥If song fails to download and creates an empty file, that song can't be played any more
 - Try/catch to delete file if failure?

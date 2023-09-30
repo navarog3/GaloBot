@@ -3,7 +3,6 @@
 This is a Discord bot build in Javascript using DiscordJs. It is just intended to be a music bot, as all of those seem to be dying off.
 
 Known Bugs:
-- Bot can't play age-restricted videos on YouTube due to not being able to sign in. As far as I know, this is unsolveable
 - If the bot errors while downloading a song, it leaves a corrupted file behind that must be manually removed before the bot can play that song
 
 Command List:

@@ -24,13 +24,13 @@ for (const file of commandFiles) {
 	if ('data' in command && 'execute' in command) {
 		client.commands.set(command.data.name, command);
 	} else {
-		console.warn(`The command at ${filePath} is missing a required "data" or "execute" property.`);
+		console.warn('The command at ' + filePath + ' is missing a required "data" or "execute" property.');
 	}
 }
 
-// Once client is ready, run this code once
+// Once client is ready, this code should only be run once
 client.once(Events.ClientReady, c => {
-	console.log(`Logged in as ${c.user.tag}`);
+	console.log('Logged in as ' + c.user.tag);
 });
 
 // On interactions (slash commands are interactions), execute it
@@ -40,7 +40,7 @@ client.on(Events.InteractionCreate, async interaction => {
 	const command = interaction.client.commands.get(interaction.commandName);
 
 	if (!command) {
-		console.error(`No command matching ${interaction.commmandName} was found.`);
+		interaction.reply('No command matching ' + interaction.commmandName + ' was found.');
 		return;
 	}
 
