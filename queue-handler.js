@@ -103,20 +103,26 @@ module.exports = class QueueHandler {
                     interaction.editReply('Playlist processed, added ' + playlistInfo.length + ' songs to the queue');
 
                 } else {
-                    // Need to clean up the corrupted file that was generated
-                    fs.unlink(__dirname + '/' + song.filePath, (err) => {
-                        // Based on error code, inform user
-                        switch (errCode) {
-                            case 410:
-                                // Error 410 means that the requested song is age-restricted
-                                interaction.editReply('At least one of the songs in your playlist is age-restricted and can\'t be played');
-                                break;
+                    // If errCode is undefined (some errors don't include it), set it to zero so the user is notified.
+                    if (!errCode) {
+                        errCode = 0;
+                    }
+                    // Based on error code, inform user
+                    switch (errCode) {
+                        case 410:
+                            // Error 410 means that the requested song is age-restricted
+                            interaction.editReply('At least one of the songs in your playlist is age-restricted and can\'t be played');
+                            break;
+                        // Custom error codes (600+)
+                        case 601:
+                            //Error 601 means the playlist is set to private or does not exist
+                            interaction.editReply('That playlist is either set to private or does not exist.')
+                            break;
 
-                            default:
-                                interaction.editReply('You found an unhandled error! Let my developer know so that he can fix it');
-                                break;
-                        }
-                    });
+                        default:
+                            interaction.editReply('You found an unhandled error! Let my developer know so that he can fix it');
+                            break;
+                    }
                 }
             });
         } else {
@@ -149,11 +155,20 @@ module.exports = class QueueHandler {
                 } else {
                     // Need to clean up the corrupted file that was generated
                     fs.unlink(__dirname + '/' + song.filePath, (err) => {
+                        // If errCode is undefined (some errors don't include it), set it to zero so the user is notified.
+                        if (!errCode) {
+                            errCode = 0;
+                        }
                         // Based on error code, inform user
                         switch (errCode) {
                             case 410:
                                 // Error 410 means that the requested song is age-restricted
                                 interaction.editReply('That song has been age-restricted by YouTube and can\'t be played');
+                                break;
+                            // Custom error codes (600+)
+                            case 601:
+                                //Error 601 means the playlist is set to private or does not exist
+                                interaction.editReply('That song is either set to private or does not exist.')
                                 break;
 
                             default:
@@ -320,7 +335,10 @@ module.exports = class QueueHandler {
             if (err) {
                 // File isn't on disk, need to download
                 // Pipe the downloaded stream into a file
-                ytdl.downloadFromInfo(songInfo).pipe(fs.createWriteStream(song.filePath)).on('finish', () => {
+                const stream = ytdl(song.rawUrl, { filter: 'audioonly', quality: 'highestaudio' }).on('error', (error) => {
+                    callback(null, error.statusCode);
+                });
+                stream.pipe(fs.createWriteStream(song.filePath)).on('finish', () => {
                     this.enqueue(song, false);
                     callback({ title: songInfo.videoDetails.title, author: songInfo.videoDetails.ownerChannelName }, null);
                 });
@@ -355,7 +373,12 @@ module.exports = class QueueHandler {
 
     // Fetches an entire playlist from YouTube. Depending on the size of the playlist, this may take a long time
     async fetchPlaylist(playlistId, callback) {
-        const playlist = await ytpl(playlistId);
+        try {
+            const playlist = await ytpl(playlistId);
+        } catch {
+            callback(null, 601);
+            return;
+        }
         const items = playlist.items;
         var tempQueue = [];
 
