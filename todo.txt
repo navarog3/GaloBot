@@ -55,7 +55,7 @@
 - Tried adding cookies but didn't seem to work
 - Solution was to just get fancy with the error handling
 
-🟨Similarly, add checks for if video and/or playlist is private
+✅Similarly, add checks for if video and/or playlist is private
 
 🟨If song fails to download and creates an empty file, that song can't be played any more
 - Try/catch to delete file if failure?

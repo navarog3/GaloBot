@@ -6,7 +6,12 @@ const fs = require('fs');
 var isInit = false;
 var connection;
 const player = createAudioPlayer();
+
+// To run on Windows
 const musicStore = 'media/';
+
+// To run on Linux
+// const musicStore = '/home/navarog/Documents/GaloBot/media/';
 
 // Handles the song queue
 module.exports = class QueueHandler {
@@ -116,7 +121,7 @@ module.exports = class QueueHandler {
                         // Custom error codes (600+)
                         case 601:
                             //Error 601 means the playlist is set to private or does not exist
-                            interaction.editReply('That playlist is either set to private or does not exist.')
+                            interaction.editReply('That playlist is either set to private or does not exist')
                             break;
 
                         default:
@@ -168,7 +173,7 @@ module.exports = class QueueHandler {
                             // Custom error codes (600+)
                             case 601:
                                 //Error 601 means the playlist is set to private or does not exist
-                                interaction.editReply('That song is either set to private or does not exist.')
+                                interaction.editReply('That song is either set to private or does not exist')
                                 break;
 
                             default:
@@ -373,13 +378,15 @@ module.exports = class QueueHandler {
 
     // Fetches an entire playlist from YouTube. Depending on the size of the playlist, this may take a long time
     async fetchPlaylist(playlistId, callback) {
+        var playlist;
+        var items;
         try {
-            const playlist = await ytpl(playlistId);
+            playlist = await ytpl(playlistId);
+            items = playlist.items;
         } catch {
             callback(null, 601);
             return;
         }
-        const items = playlist.items;
         var tempQueue = [];
 
         for (let i = 0; i < items.length; i++) {
