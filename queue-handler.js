@@ -135,7 +135,7 @@ module.exports = class QueueHandler {
             try {
                 id = ytdl.getVideoID(rawUrl);
             } catch (error) {
-                interaction.reply('Sorry, I couldn\'t find the song "' + rawUrl + '"\nPlease make sure it is a valid YouTube URL');
+                interaction.editReply('Sorry, I couldn\'t find the song "' + rawUrl + '"\nPlease make sure it is a valid YouTube URL');
                 return;
             }
             const song = {
