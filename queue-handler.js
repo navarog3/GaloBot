@@ -114,6 +114,9 @@ module.exports = class QueueHandler {
                     }
                     // Based on error code, inform user
                     switch (errCode) {
+                        case 403:
+                            // Error 403 means that the bot has been rate-limited by Google
+                            interaction.editReply('Google has decided to rate limit the bot, try a different URL or wait a few minutes');
                         case 410:
                             // Error 410 means that the requested song is age-restricted
                             interaction.editReply('At least one of the songs in your playlist is age-restricted and can\'t be played');
@@ -166,6 +169,10 @@ module.exports = class QueueHandler {
                         }
                         // Based on error code, inform user
                         switch (errCode) {
+                            case 403:
+                                // Error 403 means that the bot has been rate-limited by Google
+                                interaction.editReply('Google has decided to rate limit the bot, try a different URL or wait a few minutes');
+                                break;
                             case 410:
                                 // Error 410 means that the requested song is age-restricted
                                 interaction.editReply('That song has been age-restricted by YouTube and can\'t be played');
@@ -175,7 +182,6 @@ module.exports = class QueueHandler {
                                 //Error 601 means the playlist is set to private or does not exist
                                 interaction.editReply('That song is either set to private or does not exist')
                                 break;
-
                             default:
                                 interaction.editReply('You found an unhandled error! Let my developer know so that he can fix it');
                                 break;
