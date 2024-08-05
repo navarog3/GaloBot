@@ -2,10 +2,13 @@ const { createAudioResource, createAudioPlayer, joinVoiceChannel, VoiceConnectio
 const ytdl = require('ytdl-core');
 const ytpl = require('ytpl');
 const fs = require('fs');
+const ErrorHandler = require('./error-handler.js');
 
 var isInit = false;
 var connection;
 const player = createAudioPlayer();
+
+var errorHandler = new ErrorHandler;
 
 // To run on Windows
 const musicStore = 'media/';
@@ -94,8 +97,8 @@ module.exports = class QueueHandler {
             }
 
             // This is an expensive operation, a large playlist will take a while
-            this.fetchPlaylist(playlistId, (playlistInfo, errCode) => {
-                if (!errCode) {
+            this.fetchPlaylist(playlistId, (playlistInfo, error) => {
+                if (!error) {
                     // Shuffle if user asked for it
                     if (shuffle) {
                         this.shuffle();
@@ -106,31 +109,8 @@ module.exports = class QueueHandler {
                     }
                     // Reply to the interaction
                     interaction.editReply('Playlist processed, added ' + playlistInfo.length + ' songs to the queue');
-
                 } else {
-                    // If errCode is undefined (some errors don't include it), set it to zero so the user is notified.
-                    if (!errCode) {
-                        errCode = 0;
-                    }
-                    // Based on error code, inform user
-                    switch (errCode) {
-                        case 403:
-                            // Error 403 means that the bot has been rate-limited by Google
-                            interaction.editReply('Google has decided to rate limit the bot, try a different URL or wait a few minutes');
-                        case 410:
-                            // Error 410 means that the requested song is age-restricted
-                            interaction.editReply('At least one of the songs in your playlist is age-restricted and can\'t be played');
-                            break;
-                        // Custom error codes (600+)
-                        case 601:
-                            //Error 601 means the playlist is set to private or does not exist
-                            interaction.editReply('That playlist is either set to private or does not exist')
-                            break;
-
-                        default:
-                            interaction.editReply('You found an unhandled error! Let my developer know so that he can fix it');
-                            break;
-                    }
+                    errorHandler.handle(error, interaction, "playlist");
                 }
             });
         } else {
@@ -147,8 +127,8 @@ module.exports = class QueueHandler {
                 filePath: musicStore + id + '.webm'
             };
 
-            this.fetchSong(song, (songInfo, errCode) => {
-                if (!errCode) {
+            this.fetchSong(song, (songInfo, error) => {
+                if (!error) {
                     // Shuffle if user asked for it
                     if (shuffle) {
                         this.shuffle();
@@ -159,33 +139,10 @@ module.exports = class QueueHandler {
                     }
                     // Reply to the interaction
                     interaction.editReply('Added <' + song.rawUrl + '> to the queue in position ' + this.songQueue.length);
-
                 } else {
                     // Need to clean up the corrupted file that was generated
                     fs.unlink(__dirname + '/' + song.filePath, (err) => {
-                        // If errCode is undefined (some errors don't include it), set it to zero so the user is notified.
-                        if (!errCode) {
-                            errCode = 0;
-                        }
-                        // Based on error code, inform user
-                        switch (errCode) {
-                            case 403:
-                                // Error 403 means that the bot has been rate-limited by Google
-                                interaction.editReply('Google has decided to rate limit the bot, try a different URL or wait a few minutes');
-                                break;
-                            case 410:
-                                // Error 410 means that the requested song is age-restricted
-                                interaction.editReply('That song has been age-restricted by YouTube and can\'t be played');
-                                break;
-                            // Custom error codes (600+)
-                            case 601:
-                                //Error 601 means the playlist is set to private or does not exist
-                                interaction.editReply('That song is either set to private or does not exist')
-                                break;
-                            default:
-                                interaction.editReply('You found an unhandled error! Let my developer know so that he can fix it');
-                                break;
-                        }
+                        errorHandler.handle(error, interaction, "song");
                     });
                 }
             });
@@ -338,21 +295,27 @@ module.exports = class QueueHandler {
         try {
             songInfo = await ytdl.getInfo(song.rawUrl, { filter: 'audioonly', quality: 'highestaudio' });
         } catch (error) {
-            callback(null, error.statusCode);
+            callback(null, error);
             return;
         }
 
         fs.access(song.filePath, fs.constants.F_OK, (err) => {
             if (err) {
-                // File isn't on disk, need to download
-                // Pipe the downloaded stream into a file
-                const stream = ytdl(song.rawUrl, { filter: 'audioonly', quality: 'highestaudio' }).on('error', (error) => {
-                    callback(null, error.statusCode);
-                });
-                stream.pipe(fs.createWriteStream(song.filePath)).on('finish', () => {
-                    this.enqueue(song, false);
-                    callback({ title: songInfo.videoDetails.title, author: songInfo.videoDetails.ownerChannelName }, null);
-                });
+                // ENOENT means file does not exist
+                if (err.code == "ENOENT") {
+                    // File isn't on disk, need to download
+                    // Pipe the downloaded stream into a file
+                    const stream = ytdl(song.rawUrl, { filter: 'audioonly', quality: 'highestaudio' }).on('error', (error) => {
+                        callback(null, error);
+                    });
+                    stream.pipe(fs.createWriteStream(song.filePath)).on('finish', () => {
+                        this.enqueue(song, false);
+                        callback({ title: songInfo.videoDetails.title, author: songInfo.videoDetails.ownerChannelName }, null);
+                    });
+                } else if (err.code == "EPERM") {
+                    // File has been marked for deletion and can't be accessed
+                    callback(null, { errCode: 602 });
+                }
             } else {
                 // File is on disk, no need to download
                 this.enqueue(song, false);
@@ -390,7 +353,7 @@ module.exports = class QueueHandler {
             playlist = await ytpl(playlistId);
             items = playlist.items;
         } catch {
-            callback(null, 601);
+            callback(null, { statusCode: 601 });
             return;
         }
         var tempQueue = [];
@@ -411,7 +374,7 @@ module.exports = class QueueHandler {
                 if (err) {
                     // File isn't on disk, need to download
                     const stream = ytdl(song.rawUrl, { filter: 'audioonly', quality: 'highestaudio' }).on('error', (error) => {
-                        callback(null, error.statusCode);
+                        callback(null, error);
                     });
                     // Pipe the downloaded stream into a file
                     stream.pipe(fs.createWriteStream(song.filePath)).on('finish', () => {

@@ -57,6 +57,8 @@
 
 ✅Similarly, add checks for if video and/or playlist is private
 
-🟨If song fails to download and creates an empty file, that song can't be played any more
+✅If song fails to download and creates an empty file, that song can't be played any more
 - Try/catch to delete file if failure?
-- Check file size before playing a song, if too small skip
+- Check file size before playing a song, if too small skip and delete
+
+🟥Find a way around YouTube's 403 errors (see https://github.com/ytdl-org/youtube-dl/issues/32882)

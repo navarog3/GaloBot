@@ -3,7 +3,7 @@
 This is a Discord bot build in Javascript using DiscordJs. It is just intended to be a music bot, as all of those seem to be dying off.
 
 Known Bugs:
-- If the bot errors while downloading a song, it leaves a corrupted file behind that must be manually removed before the bot can play that song
+- YouTube has seemingly blacklisted the bot's IP, any attempts to download songs yield 403 errors. Existing songs work fine
 - Sometimes when playing the first song after entering a voice channel, the bot won't play it. Subsequent requests work just fine
 
 Command List:
