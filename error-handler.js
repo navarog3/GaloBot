@@ -1,3 +1,5 @@
+const { devUID } = require('./config.json');
+
 module.exports = class ErrorHandler {
 
     // Handle an error, reponding to the interaction accordingly
@@ -10,19 +12,17 @@ module.exports = class ErrorHandler {
     handle(error, interaction, state) {
         var errCode = 0;
         // Try to find the error code, it can be in different places depending on where the error was
-        if (!error.errCode) {
-            if (error.statusCode) {
-                errCode = error.statusCode;
-            }
-        } else {
+        if (error.errCode) {
             errCode = error.errCode;
+        } else if (error.statusCode) {
+            errCode = error.statusCode;
         }
         // Based on error code, inform user
         switch (errCode) {
             /* ========== Normal HTML error codes (4xx, 5xx) ========== */
             case 403:
                 // Error 403 means that the bot has been rate-limited by Google
-                interaction.editReply('YouTube has rate-limited me, my developer is currently looking into ways to fix this. In the meantime, I may be unable to play new media');
+                interaction.editReply('YouTube has fundamentally changed how I have to communicate with their server, for the forseeable future I won\'t be able to download new music (songs you\'ve already downloaded will work fine though)');
                 break;
             case 410:
                 // Error 410 means that the requested song is age-restricted
@@ -31,6 +31,10 @@ module.exports = class ErrorHandler {
                 } else if (state == "song") {
                     interaction.editReply('That song is age-restricted and can\'t be played');
                 }
+                break;
+            case 429:
+                // Error 403 means that the bot has been rate-limited by Google
+                interaction.editReply('YouTube has rate-limited me, try again in a few minutes (songs that have already been played will still be available though)');
                 break;
 
             /* ========== Custom error codes (6xx) ========== */
@@ -43,7 +47,11 @@ module.exports = class ErrorHandler {
                 interaction.editReply('You tried to play a song whose file is corrupted, likely due to a previous error. Send my developer the YouTube URL and he can clean it up');
                 break;
             default:
-                interaction.editReply('You found an unhandled error! Let my developer know so that he can fix it');
+                if (devUID) {
+                    interaction.editReply('You found an unhandled error! Hey <@' + devUID + '>, fix it please');
+                } else {
+                    interaction.editReply('You found an unhandled error! It has been logged, please let my developer know');
+                }
                 console.error(error);
                 break;
         }

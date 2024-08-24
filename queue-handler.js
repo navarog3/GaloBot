@@ -7,7 +7,6 @@ const ErrorHandler = require('./error-handler.js');
 var isInit = false;
 var connection;
 const player = createAudioPlayer();
-
 var errorHandler = new ErrorHandler;
 
 // To run on Windows
@@ -18,7 +17,14 @@ const musicStore = 'media/';
 
 // Handles the song queue
 module.exports = class QueueHandler {
-    /* ========== INITIALIZER ========== */
+
+
+
+    /* ======================================================================= */
+    /* ============================= INITIALIZER ============================= */
+    /* ======================================================================= */
+
+
 
     // Initializes the QueueHandler object, setting important information
     init(interaction) {
@@ -73,7 +79,13 @@ module.exports = class QueueHandler {
         return true;
     }
 
-    /* ========== COMMANDS ========== */
+
+
+    /* ======================================================================= */
+    /* ============================== COMMANDS =============================== */
+    /* ======================================================================= */
+
+
 
     // Plays a song or adds a playlist to the queue
     async play(interaction) {
@@ -108,7 +120,7 @@ module.exports = class QueueHandler {
                         this.loop_queue = true;
                     }
                     // Reply to the interaction
-                    interaction.editReply('Playlist processed, added ' + playlistInfo.length + ' songs to the queue');
+                    interaction.editReply('Processed "' + playlistInfo.title + '", added ' + playlistInfo.items.length + ' songs to the queue');
                 } else {
                     errorHandler.handle(error, interaction, "playlist");
                 }
@@ -124,10 +136,12 @@ module.exports = class QueueHandler {
             const song = {
                 rawUrl: rawUrl,
                 id: id,
-                filePath: musicStore + id + '.webm'
+                filePath: MUSIC_STORE + id + '.webm',
+                title: '',
+                author: ''
             };
 
-            this.fetchSong(song, (songInfo, error) => {
+            this.fetchSong(song, (fetchedSong, error) => {
                 if (!error) {
                     // Shuffle if user asked for it
                     if (shuffle) {
@@ -138,7 +152,7 @@ module.exports = class QueueHandler {
                         this.loop_song = true;
                     }
                     // Reply to the interaction
-                    interaction.editReply('Added <' + song.rawUrl + '> to the queue in position ' + this.songQueue.length);
+                    interaction.editReply('Added <' + (fetchedSong ? fetchedSong.title : song.rawUrl) + '> to the queue in position ' + this.songQueue.length);
                 } else {
                     // Need to clean up the corrupted file that was generated
                     fs.unlink(__dirname + '/' + song.filePath, (err) => {
@@ -207,9 +221,9 @@ module.exports = class QueueHandler {
 
         for (let i = 0; i < this.songQueue.length; i++) {
             if (i == 0) {
-                responseString += ('\nNow playing: <' + this.songQueue[i].rawUrl + '>\n');
+                responseString += ('\nNow playing: ' + this.songQueue[i].title + '\n');
             } else {
-                responseString += (i + ': <' + this.songQueue[i].rawUrl + '>\n');
+                responseString += (i + ': ' + this.songQueue[i].title + '\n');
             }
 
             // Limit response via SONG_LIMIT
@@ -275,7 +289,22 @@ module.exports = class QueueHandler {
         }
     }
 
-    /* ========== UTILITIES ========== */
+    // Debug
+    debug(interaction) {
+        interaction.reply(
+            'player.state.status = ' + player.state.status +
+            'process.platform = ' + process.platform + 
+            
+            '\n');
+    }
+
+
+
+    /* ======================================================================= */
+    /* ============================== UTILITIES ============================== */
+    /* ======================================================================= */
+
+
 
     // Adds a song to the queue
     enqueue(song, autoPlay) {
@@ -293,7 +322,11 @@ module.exports = class QueueHandler {
     async fetchSong(song, callback) {
         var songInfo;
         try {
+            // Retrieve and set song information
             songInfo = await ytdl.getInfo(song.rawUrl, { filter: 'audioonly', quality: 'highestaudio' });
+
+            song.title = songInfo.title + ' (<' + rawUrl + '>)';
+            song.author = songInfo.author;
         } catch (error) {
             callback(null, error);
             return;
@@ -310,7 +343,7 @@ module.exports = class QueueHandler {
                     });
                     stream.pipe(fs.createWriteStream(song.filePath)).on('finish', () => {
                         this.enqueue(song, false);
-                        callback({ title: songInfo.videoDetails.title, author: songInfo.videoDetails.ownerChannelName }, null);
+                        callback(songInfo, null);
                     });
                 } else if (err.code == "EPERM") {
                     // File has been marked for deletion and can't be accessed
@@ -319,7 +352,7 @@ module.exports = class QueueHandler {
             } else {
                 // File is on disk, no need to download
                 this.enqueue(song, false);
-                callback({ title: songInfo.videoDetails.title, author: songInfo.videoDetails.ownerChannelName }, null);
+                callback(songInfo, null);
             }
         });
     }
@@ -366,7 +399,9 @@ module.exports = class QueueHandler {
             const song = {
                 rawUrl: rawUrl,
                 id: id,
-                filePath: musicStore + id + '.webm'
+                filePath: MUSIC_STORE + id + '.webm',
+                title: items[i].title + ' (<' + rawUrl + '>)',
+                author: items[i].author.name
             };
 
             // Can't just call fetchSong() because it won't necessarily maintain proper queue order if songs need to be downloaded
@@ -384,7 +419,7 @@ module.exports = class QueueHandler {
                             // items is in the correct order, tempQueue isn't necessarily
                             this.enqueuePlaylist(items, tempQueue);
                             // Return useful info
-                            callback({ length: items.length, title: playlist.title, author: playlist.author }, null);
+                            callback(playlist, null);
                         }
                     });
                 } else {
@@ -395,7 +430,7 @@ module.exports = class QueueHandler {
                         // items is in the correct order, tempQueue isn't necessarily
                         this.enqueuePlaylist(items, tempQueue);
                         // Return useful info
-                        callback({ length: items.length, title: playlist.title, author: playlist.author }, null);
+                        callback(playlist, null);
                     }
                 }
             });

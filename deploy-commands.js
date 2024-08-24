@@ -8,7 +8,7 @@ const { readdirSync } = require('fs');
 const commands = [];
 const commandFiles = readdirSync('./commands').filter(file => file.endsWith('.js'));
 
-// Grab the SlashCommandBuilder;s output for each command
+// Grab the SlashCommandBuilder's output for each command
 for (const file of commandFiles) {
     const command = require(`./commands/${file}`);
     commands.push(command.data.toJSON());
