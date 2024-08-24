@@ -9,11 +9,8 @@ var connection;
 const player = createAudioPlayer();
 var errorHandler = new ErrorHandler;
 
-// To run on Windows
-const musicStore = 'media/';
-
-// To run on Linux
-// const musicStore = '/home/navarog/Documents/GaloBot/media/';
+// Set the music store location, based on OS
+const MUSIC_STORE = process.platform == 'win32' ? 'media/' : '/home/navarog/Documents/GaloBot/media/';
 
 // Handles the song queue
 module.exports = class QueueHandler {

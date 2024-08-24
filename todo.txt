@@ -62,6 +62,7 @@
 - Check file size before playing a song, if too small skip and delete
 
 🟥Find a way around YouTube's 403 errors (see https://github.com/ytdl-org/youtube-dl/issues/32882)✅Automate the Linux vs Windows file system difference
+✅Automate the Linux vs Windows file system difference
 
 
 🟥Switch to the @distube/ytpl fork (might not have to do, only if it breaks?)
