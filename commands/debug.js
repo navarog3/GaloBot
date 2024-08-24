@@ -3,7 +3,7 @@ const { SlashCommandBuilder } = require('discord.js');
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('debug')
-        .setDescription('Displays debug info, mostly to be used by the developer.')
+        .setDescription('Debug menu')
     , execute(interaction, queueHandler) {
         queueHandler.debug(interaction);
     }

@@ -9,6 +9,9 @@ var connection;
 const player = createAudioPlayer();
 var errorHandler = new ErrorHandler;
 
+// Used by the /queue command to respect Discord's 2000 character response limit
+const SONG_LIMIT = 5;
+
 // Set the music store location, based on OS
 const MUSIC_STORE = process.platform == 'win32' ? 'media/' : '/home/navarog/Documents/GaloBot/media/';
 
@@ -70,6 +73,13 @@ module.exports = class QueueHandler {
             if (this.songQueue.length != 0) {
                 this.enqueue(this.songQueue[0], true);
             }
+        });
+
+        // Fix for when the player sometimes enters the AutoPaused state
+        // No clue why it started happening, this is likely obscuring the issue
+        player.on(AudioPlayerStatus.AutoPaused, () => {
+            // Reset network
+            connection.configureNetworking();
         });
 
         isInit = true;
@@ -207,8 +217,6 @@ module.exports = class QueueHandler {
     // Prints the current queue to chat, basically songQueue.toString()
     queue(interaction) {
         var responseString = '';
-        // Discord limits the size of reponses to 2000 characters, so limit the song list to be printed
-        const SONG_LIMIT = 5;
 
         if (this.songQueue[0] == null) {
             responseString += 'Queue is empty! Use /play to add something';
@@ -288,13 +296,15 @@ module.exports = class QueueHandler {
         }
     }
 
-    // Debug
+    // Debugging info
     debug(interaction) {
         interaction.reply(
+            '```' +
             'player.state.status = ' + player.state.status + '\n' +
-            'process.platform = ' + process.platform + '\n'
+            'connection.state.status = ' + connection.state.status + '\n' +
 
-            );
+            '```'
+        );
     }
 
 
@@ -443,7 +453,7 @@ module.exports = class QueueHandler {
         if (connection) {
             connection.destroy();
         }
-        
+
         isInit = false;
     }
 };
