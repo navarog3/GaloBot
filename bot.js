@@ -1,6 +1,6 @@
 const { readdirSync } = require('node:fs');
 const path = require('node:path');
-const { Client, Collection, Events, IntentsBitField } = require('discord.js');
+const { Client, Collection, Events, IntentsBitField, ActivityType } = require('discord.js');
 const { token } = require('./config.json');
 const QueueHandler = require('./queue-handler.js');
 
@@ -31,6 +31,11 @@ for (const file of commandFiles) {
 // Once client is ready, this code should only be run once
 client.once(Events.ClientReady, c => {
 	console.log('Logged in as ' + c.user.tag);
+
+	// Set activity type, most bots seem to use the Playing type
+	client.user.setActivity("music", {
+		type: ActivityType.Playing
+	});
 });
 
 // On interactions (slash commands are interactions), execute it

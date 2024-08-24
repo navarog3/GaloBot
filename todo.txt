@@ -69,13 +69,7 @@
 
 ✅Fix autopause bug
 
-🟥Add a status (somewhat dynamic? funny?)
-https://stackoverflow.com/questions/49286640/how-to-set-bots-status
-https://discord-api-types.dev/api/discord-api-types-v10/enum/ActivityType
-client.user.setActivity("music", {
-		type: ActivityType.Listening
-	});
+✅Add a status type
 
-🟥Switch to the @distube/ytpl fork (might not have to do, only if it breaks?)
 
 🟥Implement IP rotation and/or cookies? similar to above, only if it breaks?
