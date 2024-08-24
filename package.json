@@ -1,10 +1,15 @@
 {
   "name": "galo-bot",
-  "version": "1.0.0",
-  "description": "A Discord bot to play music, since those have all been dying off ",
-  "main": "bot.js",
-  "author": "navarog3",
+  "version": "1.1.0",
+  "description": "A Discord bot to play music, since those have all been dying off",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/navarog3/GaloBot.git"
+  },
+  "author": "Ben Spenciner (https://github.com/navarog3)",
   "type": "commonjs",
+  "license": "MIT",
+  "main": "bot.js",
   "dependencies": {
     "@discordjs/opus": "^0.8.0",
     "@discordjs/voice": "^0.16.0",
