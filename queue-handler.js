@@ -13,7 +13,7 @@ var errorHandler = new ErrorHandler;
 const SONG_LIMIT = 5;
 
 // Set the music store location, based on OS
-const MUSIC_STORE = process.platform == 'win32' ? 'media/' : '/home/navarog/Documents/GaloBot/media/';
+const MUSIC_STORE = process.platform == 'win32' ? 'media/' : '/etc/galo-bot/media/';
 
 // Handles the song queue
 module.exports = class QueueHandler {

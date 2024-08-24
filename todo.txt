@@ -65,7 +65,7 @@
 
 ✅Find a way around YouTube's 403 errors
 
-🟥Move linux media lobrary to /etc
+✅Move linux media lobrary to /etc
 
 ✅Fix autopause bug
 
