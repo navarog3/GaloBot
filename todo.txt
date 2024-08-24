@@ -65,6 +65,8 @@
 
 ✅Find a way around YouTube's 403 errors
 
+🟥Move linux media lobrary to /etc
+
 🟥Switch to the @distube/ytpl fork (might not have to do, only if it breaks?)
 
 🟥Implement IP rotation and/or cookies? similar to above, only if it breaks?

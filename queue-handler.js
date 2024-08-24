@@ -117,7 +117,7 @@ module.exports = class QueueHandler {
                         this.loop_queue = true;
                     }
                     // Reply to the interaction
-                    interaction.editReply('Processed "' + playlistInfo.title + '", added ' + playlistInfo.items.length + ' songs to the queue');
+                    interaction.editReply('Processed [' + playlistInfo.title + '](<' + rawUrl + '>), added ' + playlistInfo.items.length + ' songs to the queue');
                 } else {
                     errorHandler.handle(error, interaction, "playlist");
                 }
@@ -149,7 +149,7 @@ module.exports = class QueueHandler {
                         this.loop_song = true;
                     }
                     // Reply to the interaction
-                    interaction.editReply('Added <' + (fetchedSong ? fetchedSong.title : song.rawUrl) + '> to the queue in position ' + this.songQueue.length);
+                    interaction.editReply('Added [' + fetchedSong.videoDetails.title + '](<' + song.rawUrl + '>) to the queue in position ' + this.songQueue.length);
                 } else {
                     // Need to clean up the corrupted file that was generated
                     fs.unlink(__dirname + '/' + song.filePath, (err) => {
@@ -210,15 +210,13 @@ module.exports = class QueueHandler {
         // Discord limits the size of reponses to 2000 characters, so limit the song list to be printed
         const SONG_LIMIT = 5;
 
-        if (this.songQueue[0] != null) {
-            responseString += 'Loop song: ' + this.loop_song + ' | Loop queue: ' + this.loop_queue;
-        } else {
+        if (this.songQueue[0] == null) {
             responseString += 'Queue is empty! Use /play to add something';
         }
 
         for (let i = 0; i < this.songQueue.length; i++) {
             if (i == 0) {
-                responseString += ('\nNow playing: ' + this.songQueue[i].title + '\n');
+                responseString += ('\n### Now playing: ' + this.songQueue[i].title + '\n');
             } else {
                 responseString += (i + ': ' + this.songQueue[i].title + '\n');
             }
@@ -227,12 +225,16 @@ module.exports = class QueueHandler {
             if (i == SONG_LIMIT && this.songQueue.length > (SONG_LIMIT + 1)) {
                 const remSongs = this.songQueue.length - i - 1;
 
-                responseString += 'Queue contains an additional '
+                responseString += '-# (Plus an additional '
 
                 // Respect plurals
-                responseString += remSongs == 1 ? 'song' : remSongs + ' songs'
+                responseString += remSongs == 1 ? 'song)' : remSongs + ' songs)'
                 break;
             }
+        }
+
+        if (this.songQueue[0] != null) {
+            responseString += '\n-# Loop song: ' + this.loop_song + ' | Loop queue: ' + this.loop_queue;
         }
 
         // Print out the queue, stripping the trailing newline off using regex
@@ -289,10 +291,10 @@ module.exports = class QueueHandler {
     // Debug
     debug(interaction) {
         interaction.reply(
-            'player.state.status = ' + player.state.status +
-            'process.platform = ' + process.platform + 
-            
-            '\n');
+            'player.state.status = ' + player.state.status + '\n' +
+            'process.platform = ' + process.platform + '\n'
+
+            );
     }
 
 
@@ -322,8 +324,8 @@ module.exports = class QueueHandler {
             // Retrieve and set song information
             songInfo = await ytdl.getInfo(song.rawUrl, { filter: 'audioonly', quality: 'highestaudio' });
 
-            song.title = songInfo.title + ' (<' + rawUrl + '>)';
-            song.author = songInfo.author;
+            song.title = '[' + songInfo.videoDetails.title + '](<' + song.rawUrl + '>)';
+            song.author = songInfo.videoDetails.ownerChannelName;
         } catch (error) {
             callback(null, error);
             return;
@@ -397,7 +399,7 @@ module.exports = class QueueHandler {
                 rawUrl: rawUrl,
                 id: id,
                 filePath: MUSIC_STORE + id + '.webm',
-                title: items[i].title + ' (<' + rawUrl + '>)',
+                title: '[' + items[i].title + '](<' + rawUrl + '>)',
                 author: items[i].author.name
             };
 
@@ -438,9 +440,10 @@ module.exports = class QueueHandler {
     disconnect() {
         this.songQueue = [];
         player.stop();
-        isInit = false;
         if (connection) {
-            connection.disconnect();
+            connection.destroy();
         }
+        
+        isInit = false;
     }
 };
