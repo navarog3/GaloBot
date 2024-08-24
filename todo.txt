@@ -71,5 +71,6 @@
 
 ✅Add a status type
 
+✅Switch to the @distube/ytpl fork
 
 🟥Implement IP rotation and/or cookies? similar to above, only if it breaks?
