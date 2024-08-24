@@ -1,5 +1,5 @@
 const { createAudioResource, createAudioPlayer, joinVoiceChannel, VoiceConnectionStatus, AudioPlayerStatus } = require('@discordjs/voice');
-const ytdl = require('ytdl-core');
+const ytdl = require('@distube/ytdl-core');
 const ytpl = require('ytpl');
 const fs = require('fs');
 const ErrorHandler = require('./error-handler.js');
