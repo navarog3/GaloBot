@@ -192,8 +192,8 @@ module.exports = class QueueHandler {
 
     // Skips the current song, or to a position in queue if specified
     skip(interaction) {
-        // "position" is a user-defined integer. Set it to 1 (skip just current song) if they don't specify it
-        const pos = interaction.options.getInteger('position') == null ? 1 : interaction.options.getInteger('position');
+        // "position" is a user-defined integer. Set it to 2 (skip to queue position 2, the next song) if they don't specify it
+        const pos = interaction.options.getInteger('position') == null ? 2 : interaction.options.getInteger('position');
 
         if (player.state.status != 'idle') {
             player.pause();
@@ -302,6 +302,7 @@ module.exports = class QueueHandler {
             '```' +
             'player.state.status = ' + player.state.status + '\n' +
             'connection.state.status = ' + connection.state.status + '\n' +
+            'current song = ' + this.songQueue[0].title + '\n' +
 
             '```'
         );
